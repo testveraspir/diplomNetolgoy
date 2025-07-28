@@ -33,9 +33,7 @@ class PartnerStateTests(APITestCase):
         """ Позитивный тест: изменение статуса магазина"""
 
         old_state = self.shop.state
-        print(old_state)
         new_state = not old_state
-        print(new_state)
         data = {'state': str(new_state)}
         response = self.client.post(self.url, data, format='json')
         self.assertEqual(response.status_code, 200)

@@ -361,7 +361,7 @@ class PartnerOrders(APIView):
         """Получение списка заказов для магазина."""
 
         if not request.user.is_authenticated:
-            return JsonResponse({'Status': False, 'Error': 'Log in required'}, status=403)
+            return JsonResponse({'Status': False, 'Error': 'Требуется авторизация.'}, status=401)
 
         if request.user.type != 'shop':
             return JsonResponse({'Status': False, 'Error': 'Только для магазинов'}, status=403)
