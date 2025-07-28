@@ -11,7 +11,7 @@ User = get_user_model()
 class RegisterAccountTests(APITestCase):
     def setUp(self):
         self.client = APIClient()
-        self.url = '/api/v1/user/register'
+        self.url = reverse('backend:user-register')
         self.valid_data = {'first_name': 'John',
                            'last_name': 'Doe',
                            'email': 'john@example.com',
@@ -49,7 +49,7 @@ class RegisterAccountTests(APITestCase):
 class ConfirmAccountTests(APITestCase):
     def setUp(self):
         self.client = APIClient()
-        self.url = '/api/v1/user/register/confirm'
+        self.url = reverse('backend:user-register-confirm')
         self.user = User.objects.create_user(email='unconfirmed@example.com',
                                              password='password',
                                              is_active=False)
@@ -84,7 +84,7 @@ class ConfirmAccountTests(APITestCase):
 class LoginAccountTests(APITestCase):
     def setUp(self):
         self.client = APIClient()
-        self.url = '/api/v1/user/login'
+        self.url = reverse('backend:user-login')
         self.user = User.objects.create_user(email='test@example.com',
                                              password='testpassword',
                                              is_active=True)
@@ -117,7 +117,7 @@ class LoginAccountTests(APITestCase):
 class AccountDetailsTests(APITestCase):
     def setUp(self):
         self.client = APIClient()
-        self.url = '/api/v1/user/details'
+        self.url = reverse('backend:user-details')
         self.user = User.objects.create_user(email='test@example.com',
                                              password='testpassword',
                                              first_name='John',
