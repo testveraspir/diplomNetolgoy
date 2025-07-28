@@ -38,17 +38,17 @@ class RegisterAccount(APIView):
                 # noinspection PyTypeChecker
                 for item in password_error:
                     error_array.append(item)
-                return JsonResponse({'Status': False, 'Errors': {'password': error_array}})
+                return JsonResponse({'Status': False, 'Errors': {'password': error_array}}, status=400)
             else:
                 user_serializer = UserSerializer(data=request.data)
                 if user_serializer.is_valid():
                     user = user_serializer.save()
                     user.set_password(request.data['password'])
                     user.save()
-                    return JsonResponse({'Status': True})
+                    return JsonResponse({'Status': True}, status=201)
                 else:
-                    return JsonResponse({'Status': False, 'Errors': user_serializer.errors})
-        return JsonResponse({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'})
+                    return JsonResponse({'Status': False, 'Errors': user_serializer.errors}, status=400)
+        return JsonResponse({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'}, status=400)
 
 
 class ConfirmAccount(APIView):
@@ -64,33 +64,35 @@ class ConfirmAccount(APIView):
                 token.user.is_active = True
                 token.user.save()
                 token.delete()
-                return JsonResponse({'Status': True})
+                return JsonResponse({'Status': True}, status=200)
             else:
-                return JsonResponse({'Status': False, 'Errors': 'Неправильно указан токен или email'})
-        return JsonResponse({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'})
+                return JsonResponse({'Status': False,
+                                     'Errors': 'Неправильно указан токен или email'},
+                                    status=400)
+        return JsonResponse({'Status': False,
+                             'Errors': 'Не указаны все необходимые аргументы'},
+                            status=400)
 
 
 class AccountDetails(APIView):
-    """
-    Класс для управления персональными данными пользователя.
-    Требует аутентификации пользователя.
-    """
+    """Класс для управления персональными данными пользователя."""
 
     def get(self, request: Request, *args, **kwargs):
         """Получение данных текущего пользователя."""
 
         if not request.user.is_authenticated:
-            return JsonResponse({'Status': False, 'Error': 'Требуется авторизация.'}, status=403)
+            return JsonResponse({'Status': False, 'Error': 'Требуется авторизация.'},
+                                status=401)
 
         serializer = UserSerializer(request.user)
         return Response(serializer.data)
 
-    # Редактирование методом POST
     def post(self, request, *args, **kwargs):
         """Обновление данных пользователя."""
 
         if not request.user.is_authenticated:
-            return JsonResponse({'Status': False, 'Error': 'Требуется авторизация.'}, status=403)
+            return JsonResponse({'Status': False, 'Error': 'Требуется авторизация.'},
+                                status=401)
         if 'password' in request.data:
             errors = {}
 
@@ -101,16 +103,17 @@ class AccountDetails(APIView):
                 # noinspection PyTypeChecker
                 for item in password_error:
                     error_array.append(item)
-                return JsonResponse({'Status': False, 'Errors': {'password': error_array}})
+                return JsonResponse({'Status': False, 'Errors': {'password': error_array}},
+                                    status=400)
             else:
                 request.user.set_password(request.data['password'])
 
         user_serializer = UserSerializer(request.user, data=request.data, partial=True)
         if user_serializer.is_valid():
             user_serializer.save()
-            return JsonResponse({'Status': True})
+            return JsonResponse({'Status': True}, status=200)
         else:
-            return JsonResponse({'Status': False, 'Errors': user_serializer.errors})
+            return JsonResponse({'Status': False, 'Errors': user_serializer.errors}, status=400)
 
 
 class LoginAccount(APIView):
@@ -125,9 +128,11 @@ class LoginAccount(APIView):
             if user is not None:
                 if user.is_active:
                     token, _ = Token.objects.get_or_create(user=user)
-                    return JsonResponse({'Status': True, 'Token': token.key})
-            return JsonResponse({'Status': False, 'Errors': 'Не удалось авторизовать'})
-        return JsonResponse({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'})
+                    return JsonResponse({'Status': True, 'Token': token.key}, status=200)
+            return JsonResponse({'Status': False, 'Errors': 'Не удалось авторизовать'},
+                                status=400)
+        return JsonResponse({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'},
+                            status=400)
 
 
 class CategoryView(ListAPIView):
@@ -372,12 +377,11 @@ class PartnerOrders(APIView):
 class ContactView(APIView):
     """Класс для управления контактными данными пользователя."""
 
-    # получить мои контакты
     def get(self, request, *args, **kwargs):
         """Получение списка контактных данных пользователя."""
 
         if not request.user.is_authenticated:
-            return JsonResponse({'Status': False, 'Error': 'Требуется авторизация.'}, status=403)
+            return JsonResponse({'Status': False, 'Error': 'Требуется авторизация.'}, status=401)
 
         contact = Contact.objects.filter(
             user_id=request.user.id)
@@ -388,26 +392,26 @@ class ContactView(APIView):
         """Добавление новых контактов."""
 
         if not request.user.is_authenticated:
-            return JsonResponse({'Status': False, 'Error': 'Требуется авторизация.'}, status=403)
+            return JsonResponse({'Status': False, 'Error': 'Требуется авторизация.'}, status=401)
 
         if {'city', 'street', 'phone'}.issubset(request.data):
-            request.data._mutable = True
-            request.data.update({'user': request.user.id})
-            serializer = ContactSerializer(data=request.data)
+            data = request.data.copy()
+            data.update({'user': request.user.id})
+            serializer = ContactSerializer(data=data)
 
             if serializer.is_valid():
                 serializer.save()
-                return JsonResponse({'Status': True})
+                return JsonResponse({'Status': True}, status=201)
             else:
-                return JsonResponse({'Status': False, 'Errors': serializer.errors})
+                return JsonResponse({'Status': False, 'Errors': serializer.errors}, status=400)
 
-        return JsonResponse({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'})
+        return JsonResponse({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'}, status=400)
 
     def delete(self, request, *args, **kwargs):
         """Удаление контакт."""
 
         if not request.user.is_authenticated:
-            return JsonResponse({'Status': False, 'Error': 'Требуется авторизация.'}, status=403)
+            return JsonResponse({'Status': False, 'Error': 'Требуется авторизация.'}, status=401)
 
         items_sting = request.data.get('items')
         if items_sting:
@@ -421,27 +425,31 @@ class ContactView(APIView):
 
             if objects_deleted:
                 deleted_count = Contact.objects.filter(query).delete()[0]
-                return JsonResponse({'Status': True, 'Удалено объектов': deleted_count})
-        return JsonResponse({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'})
+                if deleted_count > 0:
+                    return JsonResponse({'Status': True, 'Удалено объектов': deleted_count},
+                                        status=200)
+                else:
+                    return JsonResponse({'Status': False, 'Error': 'Контакты не найдены'}, status=404)
+        return JsonResponse({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'},
+                            status=400)
 
     def put(self, request, *args, **kwargs):
         """Обновление существующего контакта."""
 
         if not request.user.is_authenticated:
-            return JsonResponse({'Status': False, 'Error': 'Требуется авторизация.'}, status=403)
+            return JsonResponse({'Status': False, 'Error': 'Требуется авторизация.'}, status=401)
 
         if 'id' in request.data:
             if request.data['id'].isdigit():
                 contact = Contact.objects.filter(id=request.data['id'], user_id=request.user.id).first()
-                print(contact)
                 if contact:
                     serializer = ContactSerializer(contact, data=request.data, partial=True)
                     if serializer.is_valid():
                         serializer.save()
-                        return JsonResponse({'Status': True})
+                        return JsonResponse({'Status': True}, status=200)
                     else:
-                        return JsonResponse({'Status': False, 'Errors': serializer.errors})
-        return JsonResponse({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'})
+                        return JsonResponse({'Status': False, 'Errors': serializer.errors}, status=400)
+        return JsonResponse({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'}, status=400)
 
 
 class OrderView(APIView):
