@@ -325,7 +325,7 @@ class PartnerState(APIView):
         """Получить текущий статус магазина."""
 
         if not request.user.is_authenticated:
-            return JsonResponse({'Status': False, 'Error': 'Требуется авторизация.'}, status=403)
+            return JsonResponse({'Status': False, 'Error': 'Требуется авторизация.'}, status=401)
 
         if request.user.type != 'shop':
             return JsonResponse({'Status': False, 'Error': 'Только для магазинов'}, status=403)
@@ -338,7 +338,7 @@ class PartnerState(APIView):
         """Изменить статус магазина."""
 
         if not request.user.is_authenticated:
-            return JsonResponse({'Status': False, 'Error': 'Требуется авторизация.'}, status=403)
+            return JsonResponse({'Status': False, 'Error': 'Требуется авторизация.'}, status=401)
 
         if request.user.type != 'shop':
             return JsonResponse({'Status': False, 'Error': 'Только для магазинов'}, status=403)
@@ -347,10 +347,11 @@ class PartnerState(APIView):
         if state:
             try:
                 Shop.objects.filter(user_id=request.user.id).update(state=strtobool(state))
-                return JsonResponse({'Status': True})
+                return JsonResponse({'Status': True}, status=200)
             except ValueError as error:
-                return JsonResponse({'Status': False, 'Errors': str(error)})
-        return JsonResponse({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'})
+                return JsonResponse({'Status': False, 'Errors': str(error)}, status=400)
+        return JsonResponse({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'},
+                            status=400)
 
 
 class PartnerOrders(APIView):
