@@ -274,7 +274,7 @@ class PartnerUpdate(APIView):
         """Обновление прайс-листа магазина из YAML-файла."""
 
         if not request.user.is_authenticated:
-            return JsonResponse({'Status': False, 'Error': 'Требуется авторизация.'}, status=403)
+            return JsonResponse({'Status': False, 'Error': 'Требуется авторизация.'}, status=401)
 
         if request.user.type != 'shop':
             return JsonResponse({'Status': False, 'Error': 'Только для магазинов'}, status=403)
@@ -285,7 +285,7 @@ class PartnerUpdate(APIView):
             try:
                 validate_url(url)
             except ValidationError as e:
-                return JsonResponse({'Status': False, 'Error': str(e)})
+                return JsonResponse({'Status': False, 'Error': str(e)}, status=400)
             else:
                 stream = get(url).content
                 data = load_yaml(stream, Loader=Loader)
@@ -313,8 +313,9 @@ class PartnerUpdate(APIView):
                         ProductParameter.objects.create(product_info_id=product_info.id,
                                                         parameter_id=parameter_object.id,
                                                         value=value)
-                return JsonResponse({'Status': True})
-        return JsonResponse({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'})
+                return JsonResponse({'Status': True}, status=200)
+        return JsonResponse({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'},
+                            status=400)
 
 
 class PartnerState(APIView):

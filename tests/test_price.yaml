@@ -1,0 +1,15 @@
+shop: Test Shop
+categories:
+  - id: 1
+    name: Test Category
+goods:
+    - id: 1
+      category: 1
+      name: Test Product
+      model: "Model X"
+      price: 100
+      price_rrc: 120
+      quantity: 10
+      parameters:
+        "color": "red"
+        "size": "XL"
