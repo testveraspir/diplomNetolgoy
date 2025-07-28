@@ -464,7 +464,7 @@ class OrderView(APIView):
         """Получение списка заказов пользователя (исключая корзину)."""
 
         if not request.user.is_authenticated:
-            return JsonResponse({'Status': False, 'Error': 'Требуется авторизация.'}, status=403)
+            return JsonResponse({'Status': False, 'Error': 'Требуется авторизация.'}, status=401)
 
         order = Order.objects.filter(
             user_id=request.user.id).exclude(state='basket').prefetch_related(
@@ -479,7 +479,7 @@ class OrderView(APIView):
         """Оформление заказа из корзины покупок."""
 
         if not request.user.is_authenticated:
-            return JsonResponse({'Status': False, 'Error': 'Log in required'}, status=403)
+            return JsonResponse({'Status': False, 'Error': 'Log in required'}, status=401)
 
         if {'id', 'contact'}.issubset(request.data):
             if request.data['id'].isdigit():
@@ -490,9 +490,11 @@ class OrderView(APIView):
                         state='new')
                 except IntegrityError as error:
                     print(error)
-                    return JsonResponse({'Status': False, 'Errors': 'Неправильно указаны аргументы'})
+                    return JsonResponse({'Status': False,
+                                         'Errors': 'Неправильно указаны аргументы'},
+                                        status=400)
                 else:
                     if is_updated:
                         new_order.send(sender=self.__class__, user_id=request.user.id)
-                        return JsonResponse({'Status': True})
-        return JsonResponse({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'})
+                        return JsonResponse({'Status': True}, status=200)
+        return JsonResponse({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'}, status=400)
