@@ -181,7 +181,7 @@ class BasketView(APIView):
         """Получение содержимого корзины."""
 
         if not request.user.is_authenticated:
-            return JsonResponse({'Status': False, 'Error': 'Требуется авторизация.'}, status=403)
+            return JsonResponse({'Status': False, 'Error': 'Требуется авторизация.'}, status=401)
         basket = Order.objects.filter(
             user_id=request.user.id, state='basket').prefetch_related(
             'ordered_items__product_info__product__category',
@@ -195,14 +195,14 @@ class BasketView(APIView):
         """Добавление товаров в корзину."""
 
         if not request.user.is_authenticated:
-            return JsonResponse({'Status': False, 'Error': 'Требуется авторизация.'}, status=403)
+            return JsonResponse({'Status': False, 'Error': 'Требуется авторизация.'}, status=401)
 
         items_sting = request.data.get('items')
         if items_sting:
             try:
                 items_dict = load_json(items_sting)
             except ValueError:
-                return JsonResponse({'Status': False, 'Errors': 'Неверный формат запроса'})
+                return JsonResponse({'Status': False, 'Errors': 'Неверный формат запроса'}, status=400)
             else:
                 basket, _ = Order.objects.get_or_create(user_id=request.user.id, state='basket')
                 objects_created = 0
@@ -213,19 +213,19 @@ class BasketView(APIView):
                         try:
                             serializer.save()
                         except IntegrityError as error:
-                            return JsonResponse({'Status': False, 'Errors': str(error)})
+                            return JsonResponse({'Status': False, 'Errors': str(error)}, status=400)
                         else:
                             objects_created += 1
                     else:
-                        return JsonResponse({'Status': False, 'Errors': serializer.errors})
-                return JsonResponse({'Status': True, 'Создано объектов': objects_created})
-        return JsonResponse({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'})
+                        return JsonResponse({'Status': False, 'Errors': serializer.errors}, status=400)
+                return JsonResponse({'Status': True, 'Создано объектов': objects_created}, status=201)
+        return JsonResponse({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'}, status=400)
 
     def delete(self, request, *args, **kwargs):
         """Удаление товаров из корзины."""
 
         if not request.user.is_authenticated:
-            return JsonResponse({'Status': False, 'Error': 'Требуется авторизация.'}, status=403)
+            return JsonResponse({'Status': False, 'Error': 'Требуется авторизация.'}, status=401)
 
         items_sting = request.data.get('items')
         if items_sting:
@@ -240,21 +240,23 @@ class BasketView(APIView):
 
             if objects_deleted:
                 deleted_count = OrderItem.objects.filter(query).delete()[0]
-                return JsonResponse({'Status': True, 'Удалено объектов': deleted_count})
-        return JsonResponse({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'})
+                return JsonResponse({'Status': True, 'Удалено объектов': deleted_count}, status=200)
+        return JsonResponse({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'},
+                            status=400)
 
     def put(self, request, *args, **kwargs):
         """Изменение количество товаров в корзине."""
 
         if not request.user.is_authenticated:
-            return JsonResponse({'Status': False, 'Error': 'Требуется авторизация.'}, status=403)
+            return JsonResponse({'Status': False, 'Error': 'Требуется авторизация.'}, status=401)
 
         items_sting = request.data.get('items')
         if items_sting:
             try:
                 items_dict = load_json(items_sting)
             except ValueError:
-                return JsonResponse({'Status': False, 'Errors': 'Неверный формат запроса'})
+                return JsonResponse({'Status': False, 'Errors': 'Неверный формат запроса'},
+                                    status=400)
             else:
                 basket, _ = Order.objects.get_or_create(user_id=request.user.id, state='basket')
                 objects_updated = 0
@@ -263,8 +265,9 @@ class BasketView(APIView):
                         objects_updated += OrderItem.objects.filter(order_id=basket.id,
                                                                     id=order_item['id']).update(
                             quantity=order_item['quantity'])
-                return JsonResponse({'Status': True, 'Обновлено объектов': objects_updated})
-        return JsonResponse({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'})
+                return JsonResponse({'Status': True, 'Обновлено объектов': objects_updated}, status=200)
+        return JsonResponse({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'},
+                            status=400)
 
 
 class PartnerUpdate(APIView):
