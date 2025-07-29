@@ -9,6 +9,7 @@ from rest_framework.views import APIView
 from yaml import load as load_yaml, Loader
 from backend.models import (Shop, Category, Product, ProductInfo,
                             Parameter, ProductParameter, Order)
+from backend.permissions import IsShopUser, IsAuthenticated
 from backend.serializers import ShopSerializer, OrderSerializer
 from backend.signals import new_user_registered, new_order
 
@@ -16,18 +17,10 @@ from backend.signals import new_user_registered, new_order
 class PartnerUpdate(APIView):
     """Класс для обновления прайс-листа магазина."""
 
+    permission_classes = [IsAuthenticated, IsShopUser]
+
     def post(self, request, *args, **kwargs):
         """Обновление прайс-листа магазина из YAML-файла."""
-
-        if not request.user.is_authenticated:
-            return JsonResponse({'Status': False,
-                                 'Error': 'Требуется авторизация.'},
-                                status=401)
-
-        if request.user.type != 'shop':
-            return JsonResponse({'Status': False,
-                                 'Error': 'Только для магазинов'},
-                                status=403)
 
         url = request.data.get('url')
         if url:
@@ -75,18 +68,10 @@ class PartnerUpdate(APIView):
 class PartnerState(APIView):
     """Класс для управления статусом магазина."""
 
+    permission_classes = [IsAuthenticated, IsShopUser]
+
     def get(self, request, *args, **kwargs):
         """Получить текущий статус магазина."""
-
-        if not request.user.is_authenticated:
-            return JsonResponse({'Status': False,
-                                 'Error': 'Требуется авторизация.'},
-                                status=401)
-
-        if request.user.type != 'shop':
-            return JsonResponse({'Status': False,
-                                 'Error': 'Только для магазинов'},
-                                status=403)
 
         shop = request.user.shop
         serializer = ShopSerializer(shop)
@@ -94,16 +79,6 @@ class PartnerState(APIView):
 
     def post(self, request, *args, **kwargs):
         """Изменить статус магазина."""
-
-        if not request.user.is_authenticated:
-            return JsonResponse({'Status': False,
-                                 'Error': 'Требуется авторизация.'},
-                                status=401)
-
-        if request.user.type != 'shop':
-            return JsonResponse({'Status': False,
-                                 'Error': 'Только для магазинов'},
-                                status=403)
 
         state = request.data.get('state')
         if state:
@@ -124,18 +99,10 @@ class PartnerState(APIView):
 class PartnerOrders(APIView):
     """Класс для получения заказов поставщиками."""
 
+    permission_classes = [IsAuthenticated, IsShopUser]
+
     def get(self, request, *args, **kwargs):
         """Получение списка заказов для магазина."""
-
-        if not request.user.is_authenticated:
-            return JsonResponse({'Status': False,
-                                 'Error': 'Требуется авторизация.'},
-                                status=401)
-
-        if request.user.type != 'shop':
-            return JsonResponse({'Status': False,
-                                 'Error': 'Только для магазинов'},
-                                status=403)
 
         order = Order.objects.filter(
             ordered_items__product_info__shop__user_id=request.user.id

@@ -7,6 +7,7 @@ from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from backend.models import Contact, ConfirmEmailToken
+from backend.permissions import IsAuthenticated
 from backend.serializers import UserSerializer, ContactSerializer
 from backend.signals import new_user_registered, new_order
 
@@ -71,13 +72,10 @@ class ConfirmAccount(APIView):
 class AccountDetails(APIView):
     """Класс для управления персональными данными пользователя."""
 
+    permission_classes = [IsAuthenticated]
+
     def get(self, request: Request, *args, **kwargs):
         """Получение данных текущего пользователя."""
-
-        if not request.user.is_authenticated:
-            return JsonResponse({'Status': False,
-                                 'Error': 'Требуется авторизация.'},
-                                status=401)
 
         serializer = UserSerializer(request.user)
         return Response(serializer.data)
@@ -85,10 +83,6 @@ class AccountDetails(APIView):
     def post(self, request, *args, **kwargs):
         """Обновление данных пользователя."""
 
-        if not request.user.is_authenticated:
-            return JsonResponse({'Status': False,
-                                 'Error': 'Требуется авторизация.'},
-                                status=401)
         if 'password' in request.data:
             errors = {}
 
@@ -142,12 +136,10 @@ class LoginAccount(APIView):
 class ContactView(APIView):
     """Класс для управления контактными данными пользователя."""
 
+    permission_classes = [IsAuthenticated]
+
     def get(self, request, *args, **kwargs):
         """Получение списка контактных данных пользователя."""
-
-        if not request.user.is_authenticated:
-            return JsonResponse({'Status': False, 'Error': 'Требуется авторизация.'},
-                                status=401)
 
         contact = Contact.objects.filter(
             user_id=request.user.id)
@@ -156,11 +148,6 @@ class ContactView(APIView):
 
     def post(self, request, *args, **kwargs):
         """Добавление новых контактов."""
-
-        if not request.user.is_authenticated:
-            return JsonResponse({'Status': False,
-                                 'Error': 'Требуется авторизация.'},
-                                status=401)
 
         if {'city', 'street', 'phone'}.issubset(request.data):
             data = request.data.copy()
@@ -181,11 +168,6 @@ class ContactView(APIView):
 
     def delete(self, request, *args, **kwargs):
         """Удаление контакт."""
-
-        if not request.user.is_authenticated:
-            return JsonResponse({'Status': False,
-                                 'Error': 'Требуется авторизация.'},
-                                status=401)
 
         items_sting = request.data.get('items')
         if items_sting:
@@ -213,11 +195,6 @@ class ContactView(APIView):
 
     def put(self, request, *args, **kwargs):
         """Обновление существующего контакта."""
-
-        if not request.user.is_authenticated:
-            return JsonResponse({'Status': False,
-                                 'Error': 'Требуется авторизация.'},
-                                status=401)
 
         if 'id' in request.data:
             if request.data['id'].isdigit():

@@ -6,6 +6,7 @@ from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from backend.models import Shop, Category, ProductInfo, Order
+from backend.permissions import IsAuthenticated
 from backend.serializers import (CategorySerializer, ShopSerializer,
                                  ProductInfoSerializer, OrderSerializer)
 from backend.signals import new_user_registered, new_order
@@ -53,13 +54,10 @@ class ProductInfoView(APIView):
 class OrderView(APIView):
     """Класс для получения и размещения заказов пользователями."""
 
+    permission_classes = [IsAuthenticated]
+
     def get(self, request, *args, **kwargs):
         """Получение списка заказов пользователя (исключая корзину)."""
-
-        if not request.user.is_authenticated:
-            return JsonResponse({'Status': False,
-                                 'Error': 'Требуется авторизация.'},
-                                status=401)
 
         order = Order.objects.filter(
             user_id=request.user.id
@@ -80,11 +78,6 @@ class OrderView(APIView):
 
     def post(self, request, *args, **kwargs):
         """Оформление заказа из корзины покупок."""
-
-        if not request.user.is_authenticated:
-            return JsonResponse({'Status': False,
-                                 'Error': 'Log in required'},
-                                status=401)
 
         if {'id', 'contact'}.issubset(request.data):
             if request.data['id'].isdigit():

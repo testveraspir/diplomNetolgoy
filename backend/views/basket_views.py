@@ -4,6 +4,7 @@ from django.http import JsonResponse
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from backend.models import ProductInfo, Order, OrderItem
+from backend.permissions import IsAuthenticated
 from backend.serializers import OrderItemSerializer, OrderSerializer
 from backend.signals import new_user_registered, new_order
 
@@ -15,13 +16,11 @@ class BasketView(APIView):
     указанное количество товаров в магазине.
     """
 
+    permission_classes = [IsAuthenticated]
+
     def get(self, request, *args, **kwargs):
         """Получение содержимого корзины."""
 
-        if not request.user.is_authenticated:
-            return JsonResponse({'Status': False,
-                                 'Error': 'Требуется авторизация.'},
-                                status=401)
         basket = Order.objects.filter(
             user_id=request.user.id, state='basket'
         ).prefetch_related(
@@ -37,11 +36,6 @@ class BasketView(APIView):
 
     def post(self, request, *args, **kwargs):
         """Добавление товаров в корзину с резервированием количества в магазине."""
-
-        if not request.user.is_authenticated:
-            return JsonResponse({'Status': False,
-                                 'Error': 'Требуется авторизация.'},
-                                status=401)
 
         items_list = request.data.get('items')
 
@@ -133,11 +127,6 @@ class BasketView(APIView):
     def delete(self, request, *args, **kwargs):
         """Удаление товаров из корзины с возвратом количества в магазин."""
 
-        if not request.user.is_authenticated:
-            return JsonResponse({'Status': False,
-                                 'Error': 'Требуется авторизация.'},
-                                status=401)
-
         items_string = request.data.get('items')
         if not items_string:
             return JsonResponse({'Status': False,
@@ -197,11 +186,6 @@ class BasketView(APIView):
 
     def put(self, request, *args, **kwargs):
         """Изменение количество товаров в корзине с обновлением остатков в магазине."""
-
-        if not request.user.is_authenticated:
-            return JsonResponse({'Status': False,
-                                 'Error': 'Требуется авторизация.'},
-                                status=401)
 
         items_dict = request.data.get('items')
 
