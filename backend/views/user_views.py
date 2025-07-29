@@ -211,6 +211,15 @@ class ContactView(APIView):
     def put(self, request, *args, **kwargs):
         """Обновление существующего контакта."""
 
+        required_fields = {'city', 'street', 'house', 'structure',
+                           'building', 'apartment', 'phone'}
+        if not any(field in request.data for field in required_fields):
+            return JsonResponse({'Status': False,
+                                 'Errors': 'Необходимо указать хотя бы:'
+                                           ' city, street, house, structure,'
+                                           ' building, apartment или phone'},
+                                status=400)
+
         if 'id' in request.data:
             if request.data['id'].isdigit():
                 contact = Contact.objects.filter(id=request.data['id'],
@@ -228,6 +237,6 @@ class ContactView(APIView):
                                              'Errors': serializer.errors},
                                             status=400)
         return JsonResponse({'Status': False,
-                             'Errors': 'Не указаны все необходимые аргументы'},
+                             'Errors': 'Необходимые поля отсутствуют.'},
                             status=400)
 
