@@ -62,12 +62,18 @@ class OrderView(APIView):
                                 status=401)
 
         order = Order.objects.filter(
-            user_id=request.user.id).exclude(state='basket').prefetch_related(
+            user_id=request.user.id
+        ).exclude(
+            state='basket'
+        ).prefetch_related(
             'ordered_items__product_info__product__category',
-            'ordered_items__product_info__product_parameters__parameter')\
-            .select_related('contact').annotate(
+            'ordered_items__product_info__product_parameters__parameter'
+        ).select_related(
+            'contact'
+        ).annotate(
             total_sum=Sum(F('ordered_items__quantity')
-                          * F('ordered_items__product_info__price'))).distinct()
+                          * F('ordered_items__product_info__price'))
+        ).distinct()
 
         serializer = OrderSerializer(order, many=True)
         return Response(serializer.data)
@@ -84,7 +90,8 @@ class OrderView(APIView):
             if request.data['id'].isdigit():
                 try:
                     is_updated = Order.objects.filter(
-                        user_id=request.user.id, id=request.data['id']).update(
+                        user_id=request.user.id, id=request.data['id']
+                    ).update(
                         contact_id=request.data['contact'],
                         state='new')
                 except IntegrityError as error:

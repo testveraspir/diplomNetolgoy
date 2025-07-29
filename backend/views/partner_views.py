@@ -138,13 +138,18 @@ class PartnerOrders(APIView):
                                 status=403)
 
         order = Order.objects.filter(
-            ordered_items__product_info__shop__user_id=request.user.id)\
-            .exclude(state='basket').prefetch_related(
+            ordered_items__product_info__shop__user_id=request.user.id
+        ).exclude(
+            state='basket'
+        ).prefetch_related(
             'ordered_items__product_info__product__category',
-            'ordered_items__product_info__product_parameters__parameter')\
-            .select_related('contact').annotate(
+            'ordered_items__product_info__product_parameters__parameter'
+        ).select_related(
+            'contact'
+        ).annotate(
             total_sum=Sum(F('ordered_items__quantity')
-                          * F('ordered_items__product_info__price'))).distinct()
+                          * F('ordered_items__product_info__price'))
+        ).distinct()
 
         serializer = OrderSerializer(order, many=True)
         return Response(serializer.data)

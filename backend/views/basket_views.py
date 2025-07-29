@@ -23,11 +23,14 @@ class BasketView(APIView):
                                  'Error': 'Требуется авторизация.'},
                                 status=401)
         basket = Order.objects.filter(
-            user_id=request.user.id, state='basket').prefetch_related(
+            user_id=request.user.id, state='basket'
+        ).prefetch_related(
             'ordered_items__product_info__product__category',
-            'ordered_items__product_info__product_parameters__parameter').annotate(
+            'ordered_items__product_info__product_parameters__parameter'
+        ).annotate(
             total_sum=Sum(F('ordered_items__quantity') * F(
-                'ordered_items__product_info__price'))).distinct()
+                'ordered_items__product_info__price'))
+        ).distinct()
 
         serializer = OrderSerializer(basket, many=True)
         return Response(serializer.data)
