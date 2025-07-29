@@ -4,7 +4,7 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.db.models import Q, Sum, F
 from django.http import JsonResponse
 from requests import get
@@ -12,7 +12,6 @@ from rest_framework.authtoken.models import Token
 from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from ujson import loads as load_json
 from yaml import load as load_yaml, Loader
 
 from backend.models import (Shop, Category, Product,
@@ -175,7 +174,11 @@ class ProductInfoView(APIView):
 
 
 class BasketView(APIView):
-    """Класс для работы с корзиной покупок."""
+    """
+    Класс для работы с корзиной покупок.
+    При добавлении товаров в корзину резервирует
+    указанное количество товаров в магазине.
+    """
 
     def get(self, request, *args, **kwargs):
         """Получение содержимого корзины."""
@@ -192,82 +195,218 @@ class BasketView(APIView):
         return Response(serializer.data)
 
     def post(self, request, *args, **kwargs):
-        """Добавление товаров в корзину."""
+        """Добавление товаров в корзину с резервированием количества в магазине."""
 
         if not request.user.is_authenticated:
             return JsonResponse({'Status': False, 'Error': 'Требуется авторизация.'}, status=401)
 
-        items_sting = request.data.get('items')
-        if items_sting:
+        items_list = request.data.get('items')
+
+        if items_list:
+
+            # предварительная проверка наличия товаров перед транзакцией
+            pre_check_errors = []
+            product_infos = {}
+
+            if not isinstance(items_list, list):
+                pre_check_errors.append("items должен быть списком")
+                return JsonResponse({'Status': False, 'Errors': pre_check_errors}, status=400)
+
+            for order_item_data in items_list:
+                product_info_id = order_item_data.get('product_info')
+                quantity = order_item_data.get('quantity')
+
+                if not product_info_id or not quantity:
+                    pre_check_errors.append("Не указаны product_info или quantity")
+                    continue
+
+                try:
+                    product_info = ProductInfo.objects.get(id=product_info_id)
+                    product_infos[product_info_id] = product_info
+
+                    if product_info.quantity < quantity:
+                        pre_check_errors.append(
+                            f"Недостаточно товара '{product_info.product.name}'."
+                            f" Доступно: {product_info.quantity}, Запрошено: {quantity}")
+                except ProductInfo.DoesNotExist:
+                    pre_check_errors.append(f"Товар с id {product_info_id} не найден")
+
+            if pre_check_errors:
+                return JsonResponse({'Status': False, 'Errors': pre_check_errors}, status=400)
+
+            # если предварительная проверка прошла успешно, начинаем транзакцию
             try:
-                items_dict = load_json(items_sting)
-            except ValueError:
-                return JsonResponse({'Status': False, 'Errors': 'Неверный формат запроса'}, status=400)
-            else:
-                basket, _ = Order.objects.get_or_create(user_id=request.user.id, state='basket')
-                objects_created = 0
-                for order_item in items_dict:
-                    order_item.update({'order': basket.id})
-                    serializer = OrderItemSerializer(data=order_item)
-                    if serializer.is_valid():
-                        try:
+                with transaction.atomic():
+                    basket, _ = Order.objects.get_or_create(user_id=request.user.id, state='basket')
+                    objects_created = 0
+
+                    for order_item_data in items_list:
+                        product_info_id = order_item_data.get('product_info')
+                        quantity = order_item_data.get('quantity')
+                        product_info = product_infos[product_info_id]
+
+                        # уменьшаем количество товара
+                        ProductInfo.objects.filter(id=product_info_id, quantity__gte=quantity).update(
+                            quantity=F('quantity') - quantity)
+
+                        # проверяем, что обновление прошло успешно
+                        updated_rows = ProductInfo.objects.filter(
+                            id=product_info_id,
+                            quantity=F('quantity') + quantity - quantity).count()
+
+                        if not updated_rows:
+                            raise ValueError(
+                                f"Не удалось зарезервировать товар {product_info_id}."
+                                f" Возможно, количество изменилось.")
+
+                        # создаём позицию в заказе
+                        order_item_data['order'] = basket.id
+                        order_item_data['price'] = product_info.price
+                        serializer = OrderItemSerializer(data=order_item_data)
+
+                        if serializer.is_valid():
                             serializer.save()
-                        except IntegrityError as error:
-                            return JsonResponse({'Status': False, 'Errors': str(error)}, status=400)
-                        else:
                             objects_created += 1
-                    else:
-                        return JsonResponse({'Status': False, 'Errors': serializer.errors}, status=400)
-                return JsonResponse({'Status': True, 'Создано объектов': objects_created}, status=201)
-        return JsonResponse({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'}, status=400)
+                        else:
+                            raise ValueError(serializer.errors)
+                    return JsonResponse({'Status': True, 'Создано объектов': objects_created}, status=201)
+            except Exception as e:
+                return JsonResponse({'Status': False,
+                                     'Errors': [str(e)] if not isinstance(e, (list, dict)) else e},
+                                    status=400)
+        return JsonResponse({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'},
+                            status=400)
 
     def delete(self, request, *args, **kwargs):
-        """Удаление товаров из корзины."""
+        """Удаление товаров из корзины с возвратом количества в магазин."""
 
         if not request.user.is_authenticated:
-            return JsonResponse({'Status': False, 'Error': 'Требуется авторизация.'}, status=401)
+            return JsonResponse({'Status': False, 'Error': 'Требуется авторизация.'},
+                                status=401)
 
-        items_sting = request.data.get('items')
-        if items_sting:
-            items_list = items_sting.split(',')
-            basket, _ = Order.objects.get_or_create(user_id=request.user.id, state='basket')
-            query = Q()
-            objects_deleted = False
-            for order_item_id in items_list:
-                if order_item_id.isdigit():
-                    query = query | Q(order_id=basket.id, id=order_item_id)
-                    objects_deleted = True
+        items_string = request.data.get('items')
+        if not items_string:
+            return JsonResponse({'Status': False, 'Errors': 'Не указаны товары для удаления'},
+                                status=400)
 
-            if objects_deleted:
-                deleted_count = OrderItem.objects.filter(query).delete()[0]
-                return JsonResponse({'Status': True, 'Удалено объектов': deleted_count}, status=200)
-        return JsonResponse({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'},
-                            status=400)
+        try:
+            items_list = [int(item) for item in items_string.split(',') if item.isdigit()]
+        except ValueError:
+            return JsonResponse({'Status': False, 'Errors': 'Неверный формат списка товаров'},
+                                status=400)
+
+        if not items_list:
+            return JsonResponse({'Status': False, 'Errors': 'Некорректный список ID товаров'},
+                                status=400)
+
+        try:
+            with transaction.atomic():
+                # получаем корзину пользователя
+                basket = Order.objects.filter(user_id=request.user.id, state='basket').first()
+                if not basket:
+                    return JsonResponse({'Status': False, 'Errors': 'Корзина не найдена'},
+                                        status=404)
+
+                # получаем все позиции для удаления с информацией о товарах
+                order_items = OrderItem.objects.filter(order_id=basket.id,
+                                                       id__in=items_list
+                                                      ).select_related('product_info')
+
+                # возвращаем товары на склад
+                for item in order_items:
+                    ProductInfo.objects.filter(id=item.product_info_id).update(
+                        quantity=F('quantity') + item.quantity
+                    )
+
+                # удаляем позиции
+                deleted_count, _ = order_items.delete()
+
+                # если не удалили ни одного элемента, хотя запрос был
+                if deleted_count == 0:
+                    return JsonResponse({'Status': False,
+                                         'Errors': 'Указанные товары не найдены в корзине'},
+                                        status=400)
+
+                return JsonResponse({'Status': True, 'Удалено объектов': deleted_count},
+                                    status=200)
+        except Exception as e:
+            return JsonResponse({'Status': False, 'Errors': str(e)},
+                                status=400)
 
     def put(self, request, *args, **kwargs):
-        """Изменение количество товаров в корзине."""
+        """Изменение количество товаров в корзине с обновлением остатков в магазине."""
 
         if not request.user.is_authenticated:
-            return JsonResponse({'Status': False, 'Error': 'Требуется авторизация.'}, status=401)
+            return JsonResponse({'Status': False,
+                                 'Error': 'Требуется авторизация.'},
+                                status=401)
 
-        items_sting = request.data.get('items')
-        if items_sting:
-            try:
-                items_dict = load_json(items_sting)
-            except ValueError:
-                return JsonResponse({'Status': False, 'Errors': 'Неверный формат запроса'},
-                                    status=400)
-            else:
-                basket, _ = Order.objects.get_or_create(user_id=request.user.id, state='basket')
+        items_dict = request.data.get('items')
+
+        if not items_dict:
+            return JsonResponse({'Status': False,
+                                 'Errors': 'Не указаны items для обновления'},
+                                status=400)
+
+        try:
+            with transaction.atomic():
                 objects_updated = 0
-                for order_item in items_dict:
-                    if type(order_item['id']) == int and type(order_item['quantity']) == int:
-                        objects_updated += OrderItem.objects.filter(order_id=basket.id,
-                                                                    id=order_item['id']).update(
-                            quantity=order_item['quantity'])
-                return JsonResponse({'Status': True, 'Обновлено объектов': objects_updated}, status=200)
-        return JsonResponse({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'},
-                            status=400)
+                errors = []
+
+                for item_data in items_dict:
+                    order_item_id = item_data.get('id')
+                    new_quantity = item_data.get('quantity')
+
+                    if not order_item_id or not isinstance(new_quantity, int) or new_quantity < 0:
+                        errors.append(f"Неверные данные для позиции заказа: {item_data}")
+                        continue
+
+                    try:
+                        order_item = OrderItem.objects.get(id=order_item_id,
+                                                           order__user_id=request.user.id,
+                                                           order__state='basket')
+                    except OrderItem.DoesNotExist:
+                        errors.append(f"Позиция заказа с id {order_item_id} не найдена в вашей корзине")
+                        continue
+
+                    product_info = order_item.product_info
+
+                    # возвращаем старое количество товара на склад
+                    ProductInfo.objects.filter(id=product_info.id)\
+                        .update(quantity=F('quantity') + order_item.quantity)
+
+                    # проверяем, достаточно ли товара на складе для нового количества
+                    if product_info.quantity < new_quantity:
+
+                        # возвращаем количество обратно, т.к. недостаточно товара
+                        ProductInfo.objects.filter(id=product_info.id).update(
+                            quantity=F('quantity') - order_item.quantity)
+                        errors.append(
+                            f"Недостаточно товара '{product_info.product.name}'."
+                            f" Доступно: {product_info.quantity}, Запрошено: {new_quantity}"
+                        )
+                        continue
+
+                    # обновляем количество товара на складе с учетом нового количества
+                    ProductInfo.objects.filter(id=product_info.id, quantity__gte=new_quantity).update(
+                        quantity=F('quantity') - new_quantity
+                    )
+
+                    # обновляем количество в позиции заказа
+                    order_item.quantity = new_quantity
+                    order_item.save()
+                    objects_updated += 1
+
+                if errors:
+                    # если были ошибки, откатываем транзакцию и возвращаем ошибки
+                    raise ValueError(errors)
+
+                return JsonResponse({'Status': True, 'Обновлено объектов': objects_updated},
+                                    status=200)
+        except Exception as e:
+            return JsonResponse({'Status': False,
+                                 'Errors': [str(e)] if not isinstance(e, (list, dict)) else e},
+                                status=400)
 
 
 class PartnerUpdate(APIView):

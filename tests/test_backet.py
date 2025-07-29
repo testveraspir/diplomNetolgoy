@@ -1,5 +1,3 @@
-import json
-
 from backend.models import Category, Shop, Product, ProductInfo, OrderItem, Order
 from rest_framework.test import APITestCase, APIClient
 from rest_framework.authtoken.models import Token
@@ -49,13 +47,18 @@ class BasketViewTests(APITestCase):
         """Позитивный тест: добавление товаров в корзину"""
 
         self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+        initial_quantity = self.product_info.quantity
         items = [{'product_info': self.product_info.id, 'quantity': 2}]
         response = self.client.post(self.url,
-                                    data={'items': json.dumps(items)},
+                                    data={'items': items},
                                     format='json')
         self.assertEqual(response.status_code, 201)
         self.assertTrue(response.json()['Status'])
         self.assertEqual(response.json()['Создано объектов'], 1)
+
+        # проверка уменьшения количества товара
+        self.product_info.refresh_from_db()
+        self.assertEqual(self.product_info.quantity, initial_quantity - 2)
 
     def test_add_to_basket_invalid_items(self):
         """Негативный тест: добавление невалидных данных в корзину"""
@@ -63,10 +66,24 @@ class BasketViewTests(APITestCase):
         self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
         response = self.client.post(self.url,
                                     data={'items': 'invalid_json'},
-                                    content_type='application/json')
+                                    format='json')
         self.assertEqual(response.status_code, 400)
         self.assertFalse(response.json()['Status'])
-        self.assertEqual(response.json()['Errors'], 'Неверный формат запроса')
+        self.assertEqual(response.json()['Errors'][0], 'items должен быть списком')
+
+    def test_add_to_basket_insufficient_quantity(self):
+        """Негативный тест: попытка заказать больше товара, чем есть в наличии"""
+
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+
+        items = [{'product_info': self.product_info.id, 'quantity': 15}]
+
+        response = self.client.post(self.url,
+                                    data={'items': items},
+                                    format='json')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('Недостаточно товара', response.json()['Errors'][0])
 
     def test_update_basket_item_put(self):
         """Позитивный тест: обновление количества товара в корзине"""
@@ -78,7 +95,7 @@ class BasketViewTests(APITestCase):
         self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
         items = [{'id': order_item.id, 'quantity': 5}]
         response = self.client.put(self.url,
-                                   data={'items': json.dumps(items)},
+                                   data={'items': items},
                                    format='json')
         self.assertEqual(response.status_code, 200)
         order_item.refresh_from_db()
