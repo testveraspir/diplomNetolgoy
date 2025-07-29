@@ -178,7 +178,7 @@ class ContactView(APIView):
                                     status=400)
 
         return JsonResponse({'Status': False,
-                             'Errors': 'Не указаны все необходимые аргументы'},
+                             'Errors': 'Необходимые поля отсутствуют.'},
                             status=400)
 
     def delete(self, request, *args, **kwargs):
@@ -205,7 +205,7 @@ class ContactView(APIView):
                                          'Error': 'Контакты не найдены'},
                                         status=404)
         return JsonResponse({'Status': False,
-                             'Errors': 'Не указаны все необходимые аргументы'},
+                             'Errors': 'Необходимые поля отсутствуют.'},
                             status=400)
 
     def put(self, request, *args, **kwargs):

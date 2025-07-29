@@ -214,7 +214,7 @@ class ContactViewTests(APITestCase):
 
         response = self.client.post(self.url, {'city': 'Test City'}, format='json')
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json()['Errors'], 'Не указаны все необходимые аргументы')
+        self.assertEqual(response.json()['Errors'], 'Необходимые поля отсутствуют.')
 
     def test_update_contact_put(self):
         """Позитивный тест: обновление контакта"""
@@ -252,7 +252,7 @@ class ContactViewTests(APITestCase):
 
         response = self.client.delete(self.url, format='json')
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json()['Errors'], 'Не указаны все необходимые аргументы')
+        self.assertEqual(response.json()['Errors'], 'Необходимые поля отсутствуют.')
 
     def test_delete_contacts_invalid_items(self):
         """Негативный тест: попытка удаления c некорректным items"""
