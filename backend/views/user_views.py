@@ -141,8 +141,7 @@ class ContactView(APIView):
     def get(self, request, *args, **kwargs):
         """Получение списка контактных данных пользователя."""
 
-        contact = Contact.objects.filter(
-            user_id=request.user.id)
+        contact = Contact.objects.filter(user_id=request.user.id)
         serializer = ContactSerializer(contact, many=True)
         return Response(serializer.data)
 
@@ -152,14 +151,30 @@ class ContactView(APIView):
         if {'city', 'street', 'phone'}.issubset(request.data):
             data = request.data.copy()
             data.update({'user': request.user.id})
-            serializer = ContactSerializer(data=data)
 
+            duplicate = Contact.objects.filter(user=request.user,
+                                               city=data.get('city'),
+                                               street=data.get('street'),
+                                               phone=data.get('phone')
+                                               ).exists()
+            if duplicate:
+                return JsonResponse({'Status': False,
+                                     'Errors': 'Такой контакт уже существует'},
+                                    status=400)
+
+            contact_count = Contact.objects.filter(user=request.user).count()
+            if contact_count >= 5:
+                return JsonResponse({'Status': False,
+                                     'Errors': 'Превышен лимит контактов (максимум 5)'},
+                                    status=400)
+
+            serializer = ContactSerializer(data=data)
             if serializer.is_valid():
                 serializer.save()
                 return JsonResponse({'Status': True}, status=201)
             else:
                 return JsonResponse({'Status': False,
-                                     'Errors': serializer.errors},
+                                    'Errors': serializer.errors},
                                     status=400)
 
         return JsonResponse({'Status': False,
