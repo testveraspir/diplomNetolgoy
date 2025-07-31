@@ -83,6 +83,15 @@ class AccountDetails(APIView):
     def post(self, request, *args, **kwargs):
         """Обновление данных пользователя."""
 
+        required_fields = {'first_name', 'last_name', 'email',
+                           'company', 'position', 'password'}
+        if not any(field in request.data for field in required_fields):
+            return JsonResponse({'Status': False,
+                                 'Errors': "Необходимо указать хотя бы:"
+                                           " 'first_name', 'last_name', 'email',"
+                                           " 'company', 'position', password' "},
+                                status=400)
+
         if 'password' in request.data:
             errors = {}
 
