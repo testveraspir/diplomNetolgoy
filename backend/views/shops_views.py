@@ -97,5 +97,5 @@ class OrderView(APIView):
                         new_order.send(sender=self.__class__, user_id=request.user.id)
                         return JsonResponse({'Status': True}, status=200)
         return JsonResponse({'Status': False,
-                             'Errors': 'Не указаны все необходимые аргументы'},
+                             'Errors': 'Необходимые поля отсутствуют.'},
                             status=400)

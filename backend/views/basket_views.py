@@ -121,7 +121,7 @@ class BasketView(APIView):
                                      'Errors': [str(e)] if not isinstance(e, (list, dict)) else e},
                                     status=400)
         return JsonResponse({'Status': False,
-                             'Errors': 'Не указаны все необходимые аргументы'},
+                             'Errors': 'Необходимые поля отсутствуют.'},
                             status=400)
 
     def delete(self, request, *args, **kwargs):

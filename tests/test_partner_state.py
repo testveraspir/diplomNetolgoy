@@ -72,7 +72,7 @@ class PartnerStateTests(APITestCase):
         data = {}
         response = self.client.post(self.url, data, format='json')
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json().get('Errors'), "Не указаны все необходимые аргументы")
+        self.assertEqual(response.json().get('Errors'), "Необходимые поля отсутствуют.")
 
     def test_update_shop_state_put(self):
         """Негативный тест: попытка использования метода put"""

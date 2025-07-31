@@ -61,7 +61,7 @@ class PartnerUpdate(APIView):
                                                         value=value)
                 return JsonResponse({'Status': True}, status=200)
         return JsonResponse({'Status': False,
-                             'Errors': 'Не указаны все необходимые аргументы'},
+                             'Errors': 'Необходимые поля отсутствуют.'},
                             status=400)
 
 
@@ -92,7 +92,7 @@ class PartnerState(APIView):
                                      'Errors': str(error)},
                                     status=400)
         return JsonResponse({'Status': False,
-                             'Errors': 'Не указаны все необходимые аргументы'},
+                             'Errors': 'Необходимые поля отсутствуют.'},
                             status=400)
 
 

@@ -47,4 +47,4 @@ class OrderViewTests(APITestCase):
 
         response = self.client.post(self.url, {'id': self.order.id}, format='json')
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json()['Errors'], 'Не указаны все необходимые аргументы')
+        self.assertEqual(response.json()['Errors'], 'Необходимые поля отсутствуют.')

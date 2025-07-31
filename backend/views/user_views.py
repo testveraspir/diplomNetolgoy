@@ -42,7 +42,7 @@ class RegisterAccount(APIView):
                                          'Errors': user_serializer.errors},
                                         status=400)
         return JsonResponse({'Status': False,
-                             'Errors': 'Не указаны все необходимые аргументы'},
+                             'Errors': 'Необходимые поля отсутствуют.'},
                             status=400)
 
 
@@ -65,7 +65,7 @@ class ConfirmAccount(APIView):
                                      'Errors': 'Неправильно указан токен или email'},
                                     status=400)
         return JsonResponse({'Status': False,
-                             'Errors': 'Не указаны все необходимые аргументы'},
+                             'Errors': 'Необходимые поля отсутствуют.'},
                             status=400)
 
 
@@ -129,7 +129,7 @@ class LoginAccount(APIView):
                                  'Errors': 'Не удалось авторизовать'},
                                 status=400)
         return JsonResponse({'Status': False,
-                             'Errors': 'Не указаны все необходимые аргументы'},
+                             'Errors': 'Необходимые поля отсутствуют.'},
                             status=400)
 
 

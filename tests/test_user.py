@@ -34,7 +34,7 @@ class RegisterAccountTests(APITestCase):
         del invalid_data['email']
         response = self.client.post(self.url, invalid_data, format='json')
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json()['Errors'], 'Не указаны все необходимые аргументы')
+        self.assertEqual(response.json()['Errors'], 'Необходимые поля отсутствуют.')
 
     def test_register_weak_password(self):
         """Негативный тест: слабый пароль"""
@@ -78,7 +78,7 @@ class ConfirmAccountTests(APITestCase):
 
         response = self.client.post(self.url, {'email': 'unconfirmed@example.com'}, format='json')
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json()['Errors'], 'Не указаны все необходимые аргументы')
+        self.assertEqual(response.json()['Errors'], 'Необходимые поля отсутствуют.')
 
 
 class LoginAccountTests(APITestCase):
@@ -111,7 +111,7 @@ class LoginAccountTests(APITestCase):
 
         response = self.client.post(self.url, {'email': 'test@example.com'}, format='json')
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json()['Errors'], 'Не указаны все необходимые аргументы')
+        self.assertEqual(response.json()['Errors'], 'Необходимые поля отсутствуют.')
 
 
 class AccountDetailsTests(APITestCase):
