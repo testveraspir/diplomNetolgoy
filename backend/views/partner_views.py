@@ -3,16 +3,14 @@ from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 from django.db.models import Sum, F
 from django.http import JsonResponse
-from requests import get
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from yaml import load as load_yaml, Loader, YAMLError
-from backend.models import (Shop, Category, Product, ProductInfo,
-                            Parameter, ProductParameter, Order)
+from backend.models import Shop, Order
 from backend.permissions import IsShopUser, IsAuthenticated
 from backend.serializers import ShopSerializer, OrderSerializer
-from django.db import transaction
-from requests.exceptions import RequestException
+from backend.tasks import do_import
+from celery.result import AsyncResult
+from django.urls import reverse
 
 
 class PartnerUpdate(APIView):
@@ -21,97 +19,50 @@ class PartnerUpdate(APIView):
     permission_classes = [IsAuthenticated, IsShopUser]
 
     def post(self, request, *args, **kwargs):
-        """Обновление прайс-листа магазина из YAML-файла."""
+        """Принимает URL YAML-файла и запускает импорт."""
 
         url = request.data.get('url')
         if url:
             validate_url = URLValidator()
             try:
                 validate_url(url)
+                task = do_import.delay(url, request.user.id)
+                status_url = reverse('backend:task-status', kwargs={'task_id': task.id})
+                return JsonResponse({'Status': True,
+                                     'message': 'Задача принята в обработку',
+                                     'task_id': task.id,
+                                     'status_url': status_url},
+                                    status=202)
             except ValidationError as e:
                 return JsonResponse({'Status': False,
                                      'Error': str(e)},
                                     status=400)
-            else:
-                try:
-                    response = get(url)
-                    response.raise_for_status()
-                    stream = response.content
-                    data = load_yaml(stream, Loader=Loader)
-
-                    with transaction.atomic():
-
-                        shop, _ = Shop.objects.get_or_create(name=data['shop'],
-                                                             user_id=request.user.id)
-                        if shop.user_id != request.user.id:
-                            raise ValueError("Импорт возможен только для своего магазина")
-
-                        for category in data['categories']:
-                            category_object, _ = Category.objects.get_or_create(id=category['id'],
-                                                                                name=category['name'])
-                            category_object.shops.add(shop.id)
-                            category_object.save()
-
-                        for item in data['goods']:
-                            product, _ = Product.objects.get_or_create(name=item['name'],
-                                                                       category_id=item['category'])
-
-                            # пытаемся найти существующий товар с совпадающими параметрами
-                            existing_product = ProductInfo.objects.filter(product_id=product.id,
-                                                                          external_id=item['id'],
-                                                                          model=item['model'],
-                                                                          price=item['price'],
-                                                                          price_rrc=item['price_rrc'],
-                                                                          shop_id=shop.id).first()
-                            # если товар найден - обновляем количество
-                            if existing_product:
-                                existing_product.quantity += item['quantity']
-                                existing_product.save()
-                                product_info = existing_product
-                            # если не найден - создаём новый
-                            else:
-                                product_info = ProductInfo.objects.create(product_id=product.id,
-                                                                          external_id=item['id'],
-                                                                          model=item['model'],
-                                                                          price=item['price'],
-                                                                          price_rrc=item['price_rrc'],
-                                                                          quantity=item['quantity'],
-                                                                          shop_id=shop.id)
-
-                            for name, value in item['parameters'].items():
-                                parameter_object, _ = Parameter.objects.get_or_create(name=name)
-                                # удаляем старые параметры перед созданием новых
-                                ProductParameter.objects.filter(product_info_id=product_info.id,
-                                                                parameter_id=parameter_object.id
-                                                                ).delete()
-                                ProductParameter.objects.create(product_info_id=product_info.id,
-                                                                parameter_id=parameter_object.id,
-                                                                value=value)
-                        return JsonResponse({'Status': True}, status=200)
-
-                except RequestException as e:
-                    # ошибки при запросе (неверный URL, таймаут и т.д.)
-                    return JsonResponse({'Status': False,
-                                         'Error': f'Ошибка при получении данных: {str(e)}'},
-                                        status=400)
-                except YAMLError as e:
-                    # ошибки парсинга YAML
-                    return JsonResponse({'Status': False,
-                                         'Error': f'Ошибка парсинга YAML: {str(e)}'},
-                                        status=400)
-                except KeyError as e:
-                    # отсутствие обязательных полей в данных
-                    return JsonResponse({'Status': False,
-                                         'Error': f'Отсутствует обязательное поле: {str(e)}'},
-                                        status=400)
-                except Exception as e:
-                    # любые другие непредвиденные ошибки
-                    return JsonResponse({'Status': False,
-                                         'Error': f'Неизвестная ошибка: {str(e)}'},
-                                        status=400)
         return JsonResponse({'Status': False,
                              'Errors': 'Необходимые поля отсутствуют.'},
                             status=400)
+
+    def get(self, request, task_id, *args, **kwargs):
+        """Проверяет статус выполнения задачи."""
+
+        task = AsyncResult(task_id)
+        if not task:
+            return JsonResponse({'Status': False,
+                                 'Error': 'Задача не найдена.'},
+                                status=404)
+
+        if task.failed():
+            return JsonResponse({'Status': False,
+                                 'Error': str(task.result),
+                                 'task_status': 'FAILED'},
+                                status=400)
+        elif task.ready():
+            return JsonResponse({'Status': True,
+                                 'task_status': 'SUCCESS'},
+                                status=200)
+        else:
+            return JsonResponse({'Status': True,
+                                 'task_status': 'PENDING'},
+                                status=200)
 
 
 class PartnerState(APIView):

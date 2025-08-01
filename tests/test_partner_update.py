@@ -33,10 +33,12 @@ class PartnerUpdateTests(APITestCase):
 
         response = self.client.post(self.url, {'url': 'http://example.com/price.yaml'}, format='json')
 
-        self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.json()['Status'])
-        self.assertEqual(len(responses.calls), 1)
-        self.assertEqual(responses.calls[0].request.url, 'http://example.com/price.yaml')
+        self.assertEqual(response.status_code, 202)
+        response_data = response.json()
+        self.assertTrue(response_data['Status'])
+        self.assertEqual(response_data['message'], 'Задача принята в обработку')
+        self.assertIn('task_id', response_data)
+        self.assertIn('status_url', response_data)
 
     def test_partner_update_unauthenticated(self):
         """Негативный тест: попытка обновить без авторизации"""

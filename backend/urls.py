@@ -9,6 +9,7 @@ from backend.views import (PartnerUpdate, RegisterAccount, LoginAccount,
 app_name = 'backend'
 urlpatterns = [
     path('partner/update', PartnerUpdate.as_view(), name='partner-update'),
+    path('partner/tasks/<str:task_id>', PartnerUpdate.as_view(), name='task-status'),
     path('partner/state', PartnerState.as_view(), name='partner-state'),
     path('partner/orders', PartnerOrders.as_view(), name='partner-orders'),
     path('user/register', RegisterAccount.as_view(), name='user-register'),
