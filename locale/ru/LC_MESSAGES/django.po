@@ -22,7 +22,7 @@ msgstr ""
 
 #: .\backend\models.py:72
 msgid "email address"
-msgstr "электронная почта"
+msgstr "email"
 
 #: .\backend\models.py:77
 msgid "username"
@@ -277,7 +277,7 @@ msgstr ""
 #: .\venv\Lib\site-packages\django\db\models\fields\__init__.py:137
 #, python-format
 msgid "%(model_name)s with this %(field_label)s already exists."
-msgstr ""
+msgstr "%(model_name)s с таким %(field_label)s уже существует."
 
 #. Translators: The 'lookup_type' is one of 'date', 'year' or
 #. 'month'. Eg: "Title must be unique for pub_date year"
@@ -1326,3 +1326,6 @@ msgstr "Пользователь с таким email не найден. Попр
 #: custom
 msgid "Not a valid string."
 msgstr "Некорректное значение."
+
+msgid "Invalid token."
+msgstr "Недопустимый токен."
