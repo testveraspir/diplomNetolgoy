@@ -34,7 +34,7 @@ class PartnerStateTests(APITestCase):
 
         old_state = self.shop.state
         new_state = not old_state
-        data = {'state': str(new_state)}
+        data = {'state': new_state}
         response = self.client.post(self.url, data, format='json')
         self.assertEqual(response.status_code, 200)
         self.shop.refresh_from_db()
@@ -46,7 +46,7 @@ class PartnerStateTests(APITestCase):
         self.client.credentials()
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 401)
-        self.assertEqual(response.json()['Error'], "Требуется авторизация.")
+        self.assertEqual(response.json()['Error'], 'Требуется авторизация.')
 
     def test_post_without_authorization(self):
         """ Негативный тест: попытка POST-запроса без авторизации"""
@@ -55,7 +55,7 @@ class PartnerStateTests(APITestCase):
         data = {'state': True}
         response = self.client.post(self.url, data, format='json')
         self.assertEqual(response.status_code, 401)
-        self.assertEqual(response.json()['Error'], "Требуется авторизация.")
+        self.assertEqual(response.json()['Error'], 'Требуется авторизация.')
 
     def test_invalid_user_type(self):
         """ Негативный тест: неправильный тип пользователя"""
@@ -64,7 +64,7 @@ class PartnerStateTests(APITestCase):
         self.user.save()
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 403)
-        self.assertEqual(response.json()['Error'], "Только для магазинов")
+        self.assertEqual(response.json()['Error'], 'Только для магазинов')
 
     def test_missing_required_field_in_post(self):
         """ Негативный тест: отсутствие обязательного поля в POST-запросе"""
@@ -72,7 +72,7 @@ class PartnerStateTests(APITestCase):
         data = {}
         response = self.client.post(self.url, data, format='json')
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json().get('Errors'), "Необходимые поля отсутствуют.")
+        self.assertEqual(response.json().get('Errors'), 'Поле "state" отсутствует.')
 
     def test_update_shop_state_put(self):
         """Негативный тест: попытка использования метода put"""

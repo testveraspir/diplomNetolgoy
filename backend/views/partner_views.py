@@ -49,7 +49,7 @@ class PartnerUpdate(APIView):
                 if not yaml_file.name.endswith(('.yaml', '.yml')):
                     raise ValidationError('Файл должен быть в формате YAML (.yaml/.yml)')
                 if yaml_file.size > 10 * 1024 * 1024:
-                    raise ValueError("Размер файла не должен превышать 10MB")
+                    raise ValueError('Размер файла не должен превышать 10MB')
                 file_content = yaml_file.read()
                 task = do_import.delay(file_content, request.user.id)
 
@@ -79,16 +79,16 @@ class PartnerUpdate(APIView):
                                  'Error': 'Задача не найдена.'},
                                 status=404)
 
-        task_owner_id = cache.get(f"task_owner_{task_id}")
+        task_owner_id = cache.get(f'task_owner_{task_id}')
         if task_owner_id is None:
-            return JsonResponse({"Status": False,
-                                 "Error": "Задачи не существует."},
+            return JsonResponse({'Status': False,
+                                 'Error': 'Задачи не существует.'},
                                 status=404)
 
-        task_owner_id = cache.get(f"task_owner_{task_id}")
+        task_owner_id = cache.get(f'task_owner_{task_id}')
         if task_owner_id != request.user.id:
-            return JsonResponse({"Status": False,
-                                 "Error": "У вас нет прав на просмотр этой задачи."},
+            return JsonResponse({'Status': False,
+                                 'Error': 'У вас нет прав на просмотр этой задачи.'},
                                 status=403)
 
         if task.failed():
@@ -122,19 +122,19 @@ class PartnerState(APIView):
         """Изменить статус магазина."""
 
         state = request.data.get('state')
-        if state:
-            try:
-                Shop.objects.filter(user_id=request.user.id)\
-                    .update(state=strtobool(state))
-                return JsonResponse({'Status': True},
-                                    status=200)
-            except ValueError as error:
-                return JsonResponse({'Status': False,
-                                     'Errors': str(error)},
-                                    status=400)
-        return JsonResponse({'Status': False,
-                             'Errors': 'Необходимые поля отсутствуют.'},
-                            status=400)
+
+        if state is None:
+            return JsonResponse({'Status': False,
+                                 'Errors': 'Поле "state" отсутствует.'},
+                                status=400)
+
+        if not isinstance(state, bool):
+            return JsonResponse({'Status': False,
+                                 'Errors': 'Поле "state" должно быть true или false.'},
+                                status=400)
+
+        Shop.objects.filter(user_id=request.user.id).update(state=state)
+        return JsonResponse({'Status': True}, status=200)
 
 
 class PartnerOrders(APIView):

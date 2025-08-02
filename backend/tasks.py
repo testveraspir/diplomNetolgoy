@@ -47,8 +47,6 @@ def do_import(self, source: Union[str, bytes], user_id: int) -> None:
         with transaction.atomic():
             shop, _ = Shop.objects.get_or_create(name=data['shop'],
                                                  user_id=user_id)
-            if shop.user_id != user_id:
-                raise ValueError("Импорт возможен только для своего магазина")
 
             for category in data['categories']:
                 category_object, _ = Category.objects.get_or_create(id=category['id'],
