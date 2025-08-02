@@ -4,8 +4,9 @@ from yaml import load as load_yaml, Loader, YAMLError
 from requests import get
 from requests.exceptions import RequestException
 from django.db import transaction
-from backend.models import (Shop, User, Category, Product,
-                            ProductInfo, Parameter, ProductParameter)
+from backend.models import (Shop, Category, Product, ProductInfo,
+                            Parameter, ProductParameter)
+
 
 @shared_task
 def send_email(subject, message, from_email, to):
@@ -38,7 +39,6 @@ def do_import(self, url: str, user_id: int) -> None:
         data = load_yaml(stream, Loader=Loader)
 
         with transaction.atomic():
-
             shop, _ = Shop.objects.get_or_create(name=data['shop'],
                                                  user_id=user_id)
             if shop.user_id != user_id:
@@ -54,37 +54,40 @@ def do_import(self, url: str, user_id: int) -> None:
                 product, _ = Product.objects.get_or_create(name=item['name'],
                                                            category_id=item['category'])
 
-                # пытаемся найти существующий товар с совпадающими параметрами
-                existing_product = ProductInfo.objects.filter(product_id=product.id,
-                                                              external_id=item['id'],
-                                                              model=item['model'],
-                                                              price=item['price'],
-                                                              price_rrc=item['price_rrc'],
-                                                              shop_id=shop.id).first()
-                # если товар найден - обновляем количество
-                if existing_product:
-                    existing_product.quantity += item['quantity']
-                    existing_product.save()
-                    product_info = existing_product
-                # если не найден - создаём новый
-                else:
-                    product_info = ProductInfo.objects.create(product_id=product.id,
-                                                              external_id=item['id'],
-                                                              model=item['model'],
-                                                              price=item['price'],
-                                                              price_rrc=item['price_rrc'],
-                                                              quantity=item['quantity'],
-                                                              shop_id=shop.id)
+                product_info, created = ProductInfo.objects.get_or_create(
+                    product_id=product.id,
+                    external_id=item['id'],
+                    model=item['model'],
+                    shop_id=shop.id,
+                    defaults={
+                        'price': item['price'],
+                        'price_rrc': item['price_rrc'],
+                        'quantity': item['quantity']
+                    }
+                )
 
+                if not created:
+                    # Обновляем существующий продукт
+                    product_info.price = item['price']
+                    product_info.price_rrc = item['price_rrc']
+                    product_info.quantity += item['quantity']
+                    product_info.save()
+
+                # Обработка параметров
                 for name, value in item['parameters'].items():
                     parameter_object, _ = Parameter.objects.get_or_create(name=name)
-                    # удаляем старые параметры перед созданием новых
-                    ProductParameter.objects.filter(product_info_id=product_info.id,
-                                                    parameter_id=parameter_object.id
-                                                    ).delete()
-                    ProductParameter.objects.create(product_info_id=product_info.id,
-                                                    parameter_id=parameter_object.id,
-                                                    value=value)
+
+                    # Пытаемся найти существующий параметр
+                    product_param, created = ProductParameter.objects.get_or_create(
+                        product_info_id=product_info.id,
+                        parameter_id=parameter_object.id,
+                        defaults={'value': value}
+                    )
+
+                    if not created:
+                        # Обновляем существующий параметр
+                        product_param.value = value
+                        product_param.save()
 
     except RequestException as e:
         self.retry(exc=e, countdown=60)
