@@ -6,7 +6,6 @@ from rest_framework.views import APIView
 from backend.models import ProductInfo, Order, OrderItem
 from backend.permissions import IsAuthenticated
 from backend.serializers import OrderItemSerializer, OrderSerializer
-from backend.signals import new_user_registered, new_order
 
 
 class BasketView(APIView):
@@ -46,7 +45,7 @@ class BasketView(APIView):
             product_infos = {}
 
             if not isinstance(items_list, list):
-                pre_check_errors.append("items должен быть списком")
+                pre_check_errors.append('items должен быть списком')
                 return JsonResponse({'Status': False,
                                      'Errors': pre_check_errors},
                                     status=400)
@@ -56,7 +55,11 @@ class BasketView(APIView):
                 quantity = order_item_data.get('quantity')
 
                 if not product_info_id or not quantity:
-                    pre_check_errors.append("Не указаны product_info или quantity")
+                    pre_check_errors.append('Не указаны product_info или quantity')
+                    continue
+
+                if type(product_info_id) is not int or type(quantity) is not int:
+                    pre_check_errors.append('product_info и quantity должны быть целыми числами')
                     continue
 
                 try:
@@ -136,14 +139,10 @@ class BasketView(APIView):
         try:
             items_list = [int(item) for item in items_string.split(',')
                           if item.isdigit()]
-        except ValueError:
+        except (ValueError, AttributeError):
             return JsonResponse({'Status': False,
-                                 'Errors': 'Неверный формат списка товаров'},
-                                status=400)
-
-        if not items_list:
-            return JsonResponse({'Status': False,
-                                 'Errors': 'Некорректный список ID товаров'},
+                                 'Errors': 'Некорректный формат списка ID товаров.'
+                                           ' Ожидается строка вида: "1,2,3"'},
                                 status=400)
 
         try:
@@ -203,8 +202,15 @@ class BasketView(APIView):
                     order_item_id = item_data.get('id')
                     new_quantity = item_data.get('quantity')
 
-                    if not order_item_id or not isinstance(new_quantity, int) or new_quantity < 0:
-                        errors.append(f"Неверные данные для позиции заказа: {item_data}")
+                    if not order_item_id or not isinstance(order_item_id, int)\
+                            or not isinstance(new_quantity, int) or new_quantity < 0:
+                        errors.append(f'Неверные данные для позиции заказа: {item_data}')
+                        continue
+
+                    try:
+                        Order.objects.get(user_id=request.user.id, state='basket')
+                    except Order.DoesNotExist:
+                        errors.append('У вас нет активной корзины')
                         continue
 
                     try:
