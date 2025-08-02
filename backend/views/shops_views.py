@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from backend.models import Shop, Category, ProductInfo, Order
 from backend.permissions import IsAuthenticated
-from backend.serializers import (CategorySerializer, ShopSerializer,
+from backend.serializers import (CategorySerializer, ShopSerializer, Contact,
                                  ProductInfoSerializer, OrderSerializer)
 from backend.signals import new_user_registered, new_order
 
@@ -80,22 +80,39 @@ class OrderView(APIView):
         """Оформление заказа из корзины покупок."""
 
         if {'id', 'contact'}.issubset(request.data):
-            if request.data['id'].isdigit():
-                try:
-                    is_updated = Order.objects.filter(
-                        user_id=request.user.id, id=request.data['id']
-                    ).update(
-                        contact_id=request.data['contact'],
-                        state='new')
-                except IntegrityError as error:
-                    print(error)
+
+            try:
+                order_id = int(request.data['id'])
+                contact_id = int(request.data['contact'])
+            except (ValueError, TypeError):
+                return JsonResponse({'Status': False,
+                                     'Errors': 'Поля "id" и "contact" должны быть числами.'},
+                                    status=400)
+
+            try:
+                order = Order.objects.filter(user_id=request.user.id, id=order_id).first()
+                if not order:
                     return JsonResponse({'Status': False,
-                                         'Errors': 'Неправильно указаны аргументы'},
-                                        status=400)
-                else:
-                    if is_updated:
-                        new_order.send(sender=self.__class__, user_id=request.user.id)
-                        return JsonResponse({'Status': True}, status=200)
+                                         'Errors': 'Заказ не найден или не принадлежит пользователю'},
+                                        status=404)
+                try:
+                    Contact.objects.get(id=contact_id, user=request.user)
+                except Contact.DoesNotExist:
+                    return JsonResponse({'Status': False,
+                                         'Errors': 'Контакт не найден'},
+                                        status=404)
+                is_updated = Order.objects.filter(user_id=request.user.id,
+                                                  id=order_id).update(contact_id=contact_id,
+                                                                      state='new')
+
+            except IntegrityError as error:
+                return JsonResponse({'Status': False,
+                                     'Errors': f'Ошибка базы данных: {error}'},
+                                    status=400)
+            else:
+                if is_updated:
+                    new_order.send(sender=self.__class__, user_id=request.user.id)
+                    return JsonResponse({'Status': True}, status=200)
         return JsonResponse({'Status': False,
                              'Errors': 'Необходимые поля отсутствуют.'},
                             status=400)
