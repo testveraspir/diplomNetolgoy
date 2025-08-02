@@ -15,33 +15,59 @@ from django.core.cache import cache
 
 
 class PartnerUpdate(APIView):
-    """Класс для обновления прайс-листа магазина."""
+    """Класс для обновления прайс-листа магазина через URL или YAML-файл."""
 
     permission_classes = [IsAuthenticated, IsShopUser]
 
     def post(self, request, *args, **kwargs):
-        """Принимает URL YAML-файла и запускает импорт."""
+        """Принимает URL YAML-файла или YAML-файл и запускает импорт."""
 
+        yaml_files = request.FILES.getlist('yaml_file')
         url = request.data.get('url')
-        if url:
-            validate_url = URLValidator()
-            try:
+
+        if not (url or yaml_files):
+            return JsonResponse({'Status': False,
+                                 'Error': 'Укажите URL или загрузите YAML-файл'},
+                                status=400)
+
+        if url and yaml_files:
+            return JsonResponse({'Status': False,
+                                 'Error': 'Укажите только URL или только файл'},
+                                status=400)
+
+        if yaml_files and len(yaml_files) > 1:
+            return JsonResponse({'Status': False,
+                                 'Error': 'Можно загружать только один YAML-файл'},
+                                status=400)
+        try:
+            if url:
+                validate_url = URLValidator()
                 validate_url(url)
                 task = do_import.delay(url, request.user.id)
-                cache.set(f"task_owner_{task.id}", request.user.id, timeout=86400)
-                status_url = reverse('backend:task-status', kwargs={'task_id': task.id})
-                return JsonResponse({'Status': True,
-                                     'message': 'Задача принята в обработку',
-                                     'task_id': task.id,
-                                     'status_url': status_url},
-                                    status=202)
-            except ValidationError as e:
-                return JsonResponse({'Status': False,
-                                     'Error': str(e)},
-                                    status=400)
-        return JsonResponse({'Status': False,
-                             'Errors': 'Необходимые поля отсутствуют.'},
-                            status=400)
+            elif yaml_files:
+                yaml_file = yaml_files[0]
+                if not yaml_file.name.endswith(('.yaml', '.yml')):
+                    raise ValidationError('Файл должен быть в формате YAML (.yaml/.yml)')
+                if yaml_file.size > 10 * 1024 * 1024:
+                    raise ValueError("Размер файла не должен превышать 10MB")
+                file_content = yaml_file.read()
+                task = do_import.delay(file_content, request.user.id)
+
+            cache.set(f"task_owner_{task.id}", request.user.id, timeout=86400)
+            status_url = reverse('backend:task-status', kwargs={'task_id': task.id})
+            return JsonResponse({'Status': True,
+                                 'message': 'Задача принята в обработку',
+                                 'task_id': task.id,
+                                 'status_url': status_url},
+                                status=202)
+        except ValidationError as e:
+            return JsonResponse({'Status': False,
+                                'Error': str(e)},
+                                status=400)
+        except Exception as e:
+            return JsonResponse({'Status': False,
+                                 'Error': f'Ошибка сервера: {str(e)}'},
+                                status=500)
 
     def get(self, request, task_id, *args, **kwargs):
         """Проверяет статус выполнения задачи."""

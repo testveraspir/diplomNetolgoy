@@ -1,6 +1,7 @@
 from celery import shared_task
 from django.core.mail import EmailMultiAlternatives
-from yaml import load as load_yaml, Loader, YAMLError
+from typing import Union
+from yaml import safe_load, Loader, YAMLError
 from requests import get
 from requests.exceptions import RequestException
 from django.db import transaction
@@ -29,14 +30,19 @@ def send_email(subject, message, from_email, to):
 
 
 @shared_task(bind=True)
-def do_import(self, url: str, user_id: int) -> None:
-    """Асинхронно импортирует данные партнёра из YAML-файла по URL."""
+def do_import(self, source: Union[str, bytes], user_id: int) -> None:
+    """Асинхронно импортирует данные партнёра из YAML-файла."""
 
     try:
-        response = get(url)
-        response.raise_for_status()
-        stream = response.content
-        data = load_yaml(stream, Loader=Loader)
+        if isinstance(source, str):
+            response = get(source)
+            response.raise_for_status()
+            stream = response.content
+
+        else:
+            stream = source
+
+        data = safe_load(stream)
 
         with transaction.atomic():
             shop, _ = Shop.objects.get_or_create(name=data['shop'],
