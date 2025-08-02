@@ -1,3 +1,4 @@
+import os
 from typing import Type
 
 from django.conf import settings
@@ -5,7 +6,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver, Signal
 from django_rest_passwordreset.signals import reset_password_token_created
 from backend.tasks import send_email
-from backend.models import ConfirmEmailToken, User
+from backend.models import ConfirmEmailToken, User, Order
 
 new_user_registered = Signal()
 
@@ -63,7 +64,7 @@ def new_user_registered_signal(sender: Type[User], instance: User, created: bool
 def new_order_signal(user_id, **kwargs):
     """
     Обрабатывает изменение статуса заказа, и
-    отправляет уведомление пользователю.
+    отправляет уведомление пользователю и администратору.
 
     :param user_id: ID пользователя, оформившего заказ
     :param kwargs: Дополнительные параметры
@@ -89,3 +90,59 @@ def new_order_signal(user_id, **kwargs):
         from_email=settings.EMAIL_HOST_USER,
         to=[user.email]
     )
+
+    if state == 'new':
+        order = Order.objects.filter(user_id=user_id,
+                                     state='new'
+        ).prefetch_related(
+            'ordered_items',
+            'ordered_items__product_info',
+            'ordered_items__product_info__product',
+            'ordered_items__product_info__shop'
+        ).first()
+
+        if order:
+            shops_items = {}
+            for item in order.ordered_items.all():
+                shop_name = item.product_info.shop.name
+                product_name = item.product_info.product.name
+                item_info = f"{product_name} - {item.quantity} шт." \
+                            f" x {item.product_info.price} руб."
+
+                if shop_name not in shops_items:
+                    shops_items[shop_name] = []
+                shops_items[shop_name].append(item_info)
+
+            items_list = []
+            for shop_name, products in shops_items.items():
+                items_list.append(f"\n--- Магазин: {shop_name} ---")
+                items_list.extend(products)
+
+                shop_total = sum(
+                    item.product_info.price * item.quantity
+                    for item in order.ordered_items.all()
+                    if item.product_info.shop.name == shop_name
+                )
+                items_list.append(f"Итого по магазину: {shop_total} руб.")
+
+            email_body = f"""
+               НАКЛАДНАЯ №{order.id}
+               Дата: {order.dt.strftime('%H:%M %d.%m.%Y ')}
+               Клиент: {user.email}
+               Контакт: Город {order.contact.city},
+                        Улица {order.contact.street},
+                        Телефон {order.contact.phone}
+
+               Состав заказа:
+               {chr(10).join(items_list)}
+
+               Итого к оплате: {sum(item.product_info.price * item.quantity
+                                    for item in order.ordered_items.all())} руб.
+               """
+
+            send_email.delay(
+                subject=f"Накладная по заказу #{order.id}",
+                message=email_body,
+                from_email=settings.EMAIL_HOST_USER,
+                to=[os.getenv("EMAIL_HOST_USER")]
+            )
