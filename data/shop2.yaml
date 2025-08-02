@@ -1,0 +1,54 @@
+shop: "М.Видео"  # Новый магазин
+categories:
+  - id: 224
+    name: Смартфоны  # Существующая категория (из "Связной")
+  - id: 7
+    name: Ноутбуки   # Новая категория
+  - id: 8
+    name: Умные часы # Новая категория
+
+goods:
+  # Товар, который есть в "Связной" (должен добавиться как новый, т.к. магазин другой)
+  - id: 4216292
+    category: 224
+    model: apple/iphone/xs-max
+    name: Смартфон Apple iPhone XS Max 512GB (золотистый)
+    price: 109990  # Цена отличается от "Связной"
+    price_rrc: 115990
+    quantity: 12
+    parameters:
+      "Диагональ (дюйм)": 6.5
+      "Цвет": золотистый
+  # Новый товар в существующей категории
+  - id: 5001001
+    category: 224
+    model: samsung/galaxy-s23
+    name: Смартфон Samsung Galaxy S23 Ultra 256GB (черный)
+    price: 89990
+    price_rrc: 94990
+    quantity: 5
+    parameters:
+      "Диагональ (дюйм)": 6.8
+      "Цвет": черный
+  # Товар в новой категории "Ноутбуки"
+  - id: 7002002
+    category: 7
+    model: asus/zenbook-14
+    name: Ноутбук ASUS ZenBook 14 (UX3402)
+    price: 74990
+    price_rrc: 79990
+    quantity: 3
+    parameters:
+      "Диагональ (дюйм)": 14
+      "Процессор": "Intel Core i5"
+  # Товар в новой категории "Умные часы"
+  - id: 8003003
+    category: 8
+    model: apple/watch-series8
+    name: Умные часы Apple Watch Series 8 45mm
+    price: 39990
+    price_rrc: 42990
+    quantity: 7
+    parameters:
+      "Диагональ (дюйм)": 1.9
+      "Цвет": серебристый
