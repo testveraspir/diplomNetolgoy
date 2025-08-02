@@ -31,10 +31,6 @@ def send_email(subject, message, from_email, to):
 def do_import(self, url: str, user_id: int) -> None:
     """Асинхронно импортирует данные партнёра из YAML-файла по URL."""
 
-    user = User.objects.get(pk=user_id)
-    if not (user.type == 'shop' or user.is_superuser):
-        raise ValueError("Доступ ограничен")
-
     try:
         response = get(url)
         response.raise_for_status()

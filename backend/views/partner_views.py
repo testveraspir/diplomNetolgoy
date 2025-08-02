@@ -11,6 +11,7 @@ from backend.serializers import ShopSerializer, OrderSerializer
 from backend.tasks import do_import
 from celery.result import AsyncResult
 from django.urls import reverse
+from django.core.cache import cache
 
 
 class PartnerUpdate(APIView):
@@ -27,6 +28,7 @@ class PartnerUpdate(APIView):
             try:
                 validate_url(url)
                 task = do_import.delay(url, request.user.id)
+                cache.set(f"task_owner_{task.id}", request.user.id, timeout=86400)
                 status_url = reverse('backend:task-status', kwargs={'task_id': task.id})
                 return JsonResponse({'Status': True,
                                      'message': 'Задача принята в обработку',
@@ -45,10 +47,23 @@ class PartnerUpdate(APIView):
         """Проверяет статус выполнения задачи."""
 
         task = AsyncResult(task_id)
+
         if not task:
             return JsonResponse({'Status': False,
                                  'Error': 'Задача не найдена.'},
                                 status=404)
+
+        task_owner_id = cache.get(f"task_owner_{task_id}")
+        if task_owner_id is None:
+            return JsonResponse({"Status": False,
+                                 "Error": "Задачи не существует."},
+                                status=404)
+
+        task_owner_id = cache.get(f"task_owner_{task_id}")
+        if task_owner_id != request.user.id:
+            return JsonResponse({"Status": False,
+                                 "Error": "У вас нет прав на просмотр этой задачи."},
+                                status=403)
 
         if task.failed():
             return JsonResponse({'Status': False,
