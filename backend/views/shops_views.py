@@ -9,7 +9,7 @@ from backend.models import Shop, Category, ProductInfo, Order
 from backend.permissions import IsAuthenticated
 from backend.serializers import (CategorySerializer, ShopSerializer, Contact,
                                  ProductInfoSerializer, OrderSerializer)
-from backend.signals import new_user_registered, new_order
+from backend.signals import new_order
 
 
 class CategoryView(ListAPIView):
@@ -90,10 +90,12 @@ class OrderView(APIView):
                                     status=400)
 
             try:
-                order = Order.objects.filter(user_id=request.user.id, id=order_id).first()
+                order = Order.objects.filter(user_id=request.user.id,
+                                             id=order_id,
+                                             state='basket').first()
                 if not order:
                     return JsonResponse({'Status': False,
-                                         'Errors': 'Заказ не найден или не принадлежит пользователю'},
+                                         'Errors': 'Корзина не найдена или не принадлежит пользователю'},
                                         status=404)
                 try:
                     Contact.objects.get(id=contact_id, user=request.user)
