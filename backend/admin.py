@@ -3,7 +3,7 @@ from django.contrib.auth.admin import UserAdmin
 from django.db.models import Sum, F
 from backend.models import (User, Shop, Category, ProductInfo,
                             ProductParameter, Order, OrderItem,
-                            Contact, ConfirmEmailToken)
+                            Contact)
 from backend.signals import new_order_signal
 from django.db import transaction
 

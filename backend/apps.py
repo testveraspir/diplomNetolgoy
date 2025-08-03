@@ -6,6 +6,10 @@ class BackendConfig(AppConfig):
     name = 'backend'
 
     def ready(self):
-        """Импортирует сигналы."""
 
         import backend.signals
+        from django_rest_passwordreset.models import ResetPasswordToken
+        from django.contrib import admin
+
+        if ResetPasswordToken in admin.site._registry:
+            del admin.site._registry[ResetPasswordToken]
