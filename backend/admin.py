@@ -4,6 +4,8 @@ from django.db.models import Sum, F
 from backend.models import (User, Shop, Category, Product,
                             ProductInfo, Parameter, ProductParameter,
                             Order, OrderItem, Contact, ConfirmEmailToken)
+from backend.signals import new_order_signal
+from django.db import transaction
 
 
 class ContactInline(admin.TabularInline):
@@ -104,6 +106,21 @@ class OrderAdmin(admin.ModelAdmin):
         extra_context['show_delete'] = False
         return super().changeform_view(request, object_id,
                                        form_url, extra_context)
+
+    def save_model(self, request, obj, form, change):
+        """Отправляет сигнал при изменении статуса"""
+
+        if change:
+            original = Order.objects.get(pk=obj.pk)
+            if original.state != obj.state and obj.state != 'new':
+                transaction.on_commit(lambda: new_order_signal(user_id=obj.user.id,
+                                                               state=obj.state))
+
+        super().save_model(request, obj, form, change)
+
+    def save_formset(self, request, form, formset, change):
+        """Обрабатывает сохранение связанных объектов (OrderItem)"""
+        super().save_formset(request, form, formset, change)
 
 
 @admin.register(Shop)
