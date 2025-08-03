@@ -5,8 +5,9 @@ from django.conf import settings
 from django.db.models.signals import post_save
 from django.dispatch import receiver, Signal
 from django_rest_passwordreset.signals import reset_password_token_created
-from backend.tasks import send_email
+from backend.tasks import send_email, send_email_with_attachment
 from backend.models import ConfirmEmailToken, User, Order
+from backend.excel_utils import generate_invoice_excel
 
 new_user_registered = Signal()
 
@@ -140,9 +141,13 @@ def new_order_signal(user_id, **kwargs):
                                     for item in order.ordered_items.all())} руб.
                """
 
-            send_email.delay(
-                subject=f"Накладная по заказу #{order.id}",
+            excel_data = generate_invoice_excel(order, user, shops_items)
+
+            send_email_with_attachment.delay(
+                subject=f"Накладная по заказу №{order.id}",
                 message=email_body,
                 from_email=settings.EMAIL_HOST_USER,
-                to=[os.getenv("EMAIL_HOST_USER")]
+                to_email=[os.getenv("EMAIL_HOST_USER")],
+                excel_data=excel_data,
+                filename=f"invoice_{order.id}.xlsx"
             )

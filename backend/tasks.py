@@ -1,7 +1,7 @@
 from celery import shared_task
-from django.core.mail import EmailMultiAlternatives
+from django.core.mail import EmailMultiAlternatives, EmailMessage
 from typing import Union
-from yaml import safe_load, Loader, YAMLError
+from yaml import safe_load, YAMLError
 from requests import get
 from requests.exceptions import RequestException
 from django.db import transaction
@@ -13,11 +13,11 @@ from backend.models import (Shop, Category, Product, ProductInfo,
 def send_email(subject, message, from_email, to):
     """
     Отправляет электронное письмо асинхронно через Celery.
+
     :param subject: Тема письма
     :param message: Текст письма
     :param from_email: Email отправителя
     :param to: Email получателя или список получателей
-    :return: None
     """
 
     msg = EmailMultiAlternatives(
@@ -29,9 +29,42 @@ def send_email(subject, message, from_email, to):
     msg.send()
 
 
+@shared_task
+def send_email_with_attachment(subject, message, from_email,
+                               to_email, excel_data, filename):
+    """
+    Отправляет электронное письмо с вложением асинхронно через Celery.
+
+    :param subject: Тема письма
+    :param message: Текст письма
+    :param from_email: Email отправителя
+    :param to_email: Email получателя или список получателей
+    :param excel_data: Данные для Excel файла, которые будут вложены
+    :param filename: Имя файла для вложения (например, 'invoice.xlsx')
+    """
+    email = EmailMessage(
+        subject=subject,
+        body=message,
+        from_email=from_email,
+        to=to_email,
+    )
+
+    email.attach(filename=filename,
+                 content=excel_data,
+                 mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+    email.send()
+
+
 @shared_task(bind=True)
 def do_import(self, source: Union[str, bytes], user_id: int) -> None:
-    """Асинхронно импортирует данные партнёра из YAML-файла."""
+    """
+    Асинхронно импортирует данные партнёра из YAML-файла.
+
+    :param self: Экземпляр задачи Celery (доступен благодаря bind=True)
+    :param source: Данные для импорта
+    :param user_id: ID пользователя, инициировавшего импорт.
+    """
 
     try:
         if isinstance(source, str):
