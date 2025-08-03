@@ -11,7 +11,8 @@ from django.db import transaction
 class ContactInline(admin.TabularInline):
     model = Contact
     extra = 1
-    fields = ('city', 'street', 'house', 'structure', 'building', 'apartment', 'phone')
+    fields = ('city', 'street', 'house', 'structure',
+              'building', 'apartment', 'phone')
     verbose_name = 'Контакт'
     verbose_name_plural = 'Контакты пользователя'
 
@@ -24,7 +25,8 @@ class CustomUserAdmin(UserAdmin):
 
     fieldsets = (
         (None, {'fields': ('email', 'password')}),
-        ('Персональная информация', {'fields': ('first_name', 'last_name', 'company', 'position')}),
+        ('Персональная информация', {'fields': ('first_name', 'last_name',
+                                                'company', 'position')}),
         ('Даты', {'fields': ('date_joined', )}),
     )
     list_display = ('email', 'first_name', 'last_name', 'is_staff', 'type')
@@ -126,12 +128,20 @@ class OrderAdmin(admin.ModelAdmin):
 
 @admin.register(Shop)
 class ShopAdmin(admin.ModelAdmin):
-    pass
+    list_display = ('name', 'url', 'user', 'state')
+    list_filter = ('state',)
+    search_fields = ('name', 'user__email')
 
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    pass
+    list_display = ('name', 'display_shops')
+    filter_horizontal = ('shops',)
+
+    def display_shops(self, obj):
+        return ", ".join([shop.name for shop in obj.shops.all()])
+
+    display_shops.short_description = 'Магазины'
 
 
 class ProductParameterInline(admin.TabularInline):
@@ -146,8 +156,3 @@ class ProductInfoAdmin(admin.ModelAdmin):
     list_display = ('model', 'external_id', 'product',
                     'shop', 'quantity', 'price', 'price_rrc')
     list_filter = ('shop', 'product__category')
-
-
-@admin.register(ConfirmEmailToken)
-class ConfirmEmailTokenAdmin(admin.ModelAdmin):
-    list_display = ('user', 'key', 'created_at',)
