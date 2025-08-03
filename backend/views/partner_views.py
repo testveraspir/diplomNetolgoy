@@ -1,13 +1,12 @@
-from distutils.util import strtobool
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
-from django.db.models import Sum, F
+from django.db.models import Sum, F, Q
 from django.http import JsonResponse
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from backend.models import Shop, Order
 from backend.permissions import IsShopUser, IsAuthenticated
-from backend.serializers import ShopSerializer, OrderSerializer
+from backend.serializers import ShopSerializer, PartnerOrderSerializer
 from backend.tasks import do_import
 from celery.result import AsyncResult
 from django.urls import reverse
@@ -139,25 +138,29 @@ class PartnerState(APIView):
 
 class PartnerOrders(APIView):
     """Класс для получения заказов поставщиками."""
-
     permission_classes = [IsAuthenticated, IsShopUser]
 
     def get(self, request, *args, **kwargs):
-        """Получение списка заказов для магазина."""
+        """
+        Получение списка заказов для магазина,
+        только заказы, где есть товары этого магазина
+        """
 
-        order = Order.objects.filter(
+        orders = Order.objects.filter(
             ordered_items__product_info__shop__user_id=request.user.id
-        ).exclude(
-            state='basket'
-        ).prefetch_related(
+        ).exclude(state='basket').prefetch_related(
             'ordered_items__product_info__product__category',
             'ordered_items__product_info__product_parameters__parameter'
-        ).select_related(
-            'contact'
-        ).annotate(
-            total_sum=Sum(F('ordered_items__quantity')
-                          * F('ordered_items__product_info__price'))
-        ).distinct()
+        ).select_related('contact').distinct()
 
-        serializer = OrderSerializer(order, many=True)
+        orders = orders.annotate(
+            partner_sum=Sum(
+                F('ordered_items__quantity') * F('ordered_items__product_info__price'),
+                filter=Q(ordered_items__product_info__shop__user_id=request.user.id)
+            )
+        )
+
+        serializer = PartnerOrderSerializer(orders,
+                                            many=True,
+                                            context={'request': request})
         return Response(serializer.data)
