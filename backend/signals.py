@@ -93,61 +93,78 @@ def new_order_signal(user_id, **kwargs):
     )
 
     if state == 'new':
-        order = Order.objects.filter(user_id=user_id,
-                                     state='new'
-        ).prefetch_related(
-            'ordered_items',
-            'ordered_items__product_info',
-            'ordered_items__product_info__product',
-            'ordered_items__product_info__shop'
-        ).first()
+        _handle_new_order(user_id, user)
 
-        if order:
-            shops_items = {}
-            for item in order.ordered_items.all():
-                shop_name = item.product_info.shop.name
-                product_name = item.product_info.product.name
-                item_info = f"{product_name} - {item.quantity} шт." \
-                            f" x {item.product_info.price} руб."
 
-                if shop_name not in shops_items:
-                    shops_items[shop_name] = []
-                shops_items[shop_name].append(item_info)
+def _handle_new_order(user_id, user):
+    """
+    Обрабатывает новый заказ и
+    отправляет накладную администратору
 
-            items_list = []
-            for shop_name, products in shops_items.items():
-                items_list.append(f"\n--- Магазин: {shop_name} ---")
-                items_list.extend(products)
+    :param user_id: ID пользователя, оформившего заказ
+    :param user: Объект пользователя (User)
+    """
 
-                shop_total = sum(
-                    item.product_info.price * item.quantity
-                    for item in order.ordered_items.all()
-                    if item.product_info.shop.name == shop_name
-                )
-                items_list.append(f"Итого по магазину: {shop_total} руб.")
+    order = Order.objects.filter(user_id=user_id,
+                                 state='new'
+                                 ).prefetch_related(
+        'ordered_items',
+        'ordered_items__product_info',
+        'ordered_items__product_info__product',
+        'ordered_items__product_info__shop'
+    ).first()
 
-            email_body = f"""
-               НАКЛАДНАЯ №{order.id}
-               Дата: {order.dt.strftime('%H:%M %d.%m.%Y ')}
-               Клиент: {user.email}
-               Контакт: Город {order.contact.city},
-                        Улица {order.contact.street},
-                        Телефон {order.contact.phone}
+    if not order:
+        return
 
-               Состав заказа:
-               {chr(10).join(items_list)}
+    # Подготовка данных о товарах по магазинам
+    shops_items = {}
+    for item in order.ordered_items.all():
+        shop_name = item.product_info.shop.name
+        product_name = item.product_info.product.name
+        item_info = f"{product_name} - {item.quantity} шт." \
+                    f" x {item.product_info.price} руб."
 
-               Итого к оплате: {sum(item.product_info.price * item.quantity
-                                    for item in order.ordered_items.all())} руб.
-               """
+        if shop_name not in shops_items:
+            shops_items[shop_name] = []
+        shops_items[shop_name].append(item_info)
 
-            excel_data = generate_invoice_excel(order, user, shops_items)
+    # Формирование списка товаров для email
+    items_list = []
+    for shop_name, products in shops_items.items():
+        items_list.append(f"\n--- Магазин: {shop_name} ---")
+        items_list.extend(products)
 
-            send_email_with_attachment.delay(
-                subject=f"Накладная по заказу №{order.id}",
-                message=email_body,
-                from_email=settings.EMAIL_HOST_USER,
-                to_email=[os.getenv("EMAIL_HOST_USER")],
-                excel_data=excel_data,
-                filename=f"invoice_{order.id}.xlsx"
-            )
+        shop_total = sum(
+            item.product_info.price * item.quantity
+            for item in order.ordered_items.all()
+            if item.product_info.shop.name == shop_name
+        )
+        items_list.append(f"Итого по магазину: {shop_total} руб.")
+
+    # Формирование тела письма
+    email_body = f"""
+        НАКЛАДНАЯ №{order.id}
+        Дата: {order.dt.strftime('%H:%M %d.%m.%Y')}
+        Клиент: {user.email}
+        Контакт: Город {order.contact.city},
+                Улица {order.contact.street},
+                Телефон {order.contact.phone}
+
+        Состав заказа:
+        {chr(10).join(items_list)}
+
+        Итого к оплате: {sum(item.product_info.price * item.quantity
+                             for item in order.ordered_items.all())} руб.
+        """
+
+    # Генерация и отправка Excel-файла
+    excel_data = generate_invoice_excel(order, user, shops_items)
+    send_email_with_attachment.delay(
+        subject=f"Накладная по заказу №{order.id}",
+        message=email_body,
+        from_email=settings.EMAIL_HOST_USER,
+        to_email=[os.getenv("EMAIL_HOST_USER")],
+        excel_data=excel_data,
+        filename=f"invoice_{order.id}.xlsx"
+    )
