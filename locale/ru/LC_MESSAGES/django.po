@@ -1329,3 +1329,9 @@ msgstr "Некорректное значение."
 
 msgid "Invalid token."
 msgstr "Недопустимый токен."
+
+msgid "Tokens"
+msgstr "Токены"
+
+msgid "Created"
+msgstr "Дата создания"
