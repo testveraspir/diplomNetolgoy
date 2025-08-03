@@ -1,9 +1,9 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.db.models import Sum, F
-from backend.models import (User, Shop, Category, Product,
-                            ProductInfo, Parameter, ProductParameter,
-                            Order, OrderItem, Contact, ConfirmEmailToken)
+from backend.models import (User, Shop, Category, ProductInfo,
+                            ProductParameter, Order, OrderItem,
+                            Contact, ConfirmEmailToken)
 from backend.signals import new_order_signal
 from django.db import transaction
 
@@ -28,6 +28,7 @@ class CustomUserAdmin(UserAdmin):
         ('Даты', {'fields': ('date_joined', )}),
     )
     list_display = ('email', 'first_name', 'last_name', 'is_staff', 'type')
+    list_editable = ('type',)
     inlines = [ContactInline]
 
 
