@@ -191,6 +191,9 @@ class ProductInfo(models.Model):
             models.UniqueConstraint(fields=['product', 'shop', 'external_id'], name='unique_product_info'),
         ]
 
+    def __str__(self):
+        return f"{self.product.name}"
+
 
 class Parameter(models.Model):
     """Модель параметра продукта."""

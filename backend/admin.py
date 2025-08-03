@@ -133,25 +133,18 @@ class CategoryAdmin(admin.ModelAdmin):
     pass
 
 
-@admin.register(Product)
-class ProductAdmin(admin.ModelAdmin):
-    pass
+class ProductParameterInline(admin.TabularInline):
+    model = ProductParameter
+    extra = 0
+    list_display = ('product_info', 'parameter', 'value')
 
 
 @admin.register(ProductInfo)
 class ProductInfoAdmin(admin.ModelAdmin):
-    pass
-
-
-@admin.register(Parameter)
-class ParameterAdmin(admin.ModelAdmin):
-    pass
-
-
-@admin.register(ProductParameter)
-class ProductParameterAdmin(admin.ModelAdmin):
-    pass
-
+    inlines = [ProductParameterInline]
+    list_display = ('model', 'external_id', 'product',
+                    'shop', 'quantity', 'price', 'price_rrc')
+    list_filter = ('shop', 'product__category')
 
 
 @admin.register(ConfirmEmailToken)
