@@ -1,3 +1,5 @@
+import csv
+from io import StringIO
 from celery import shared_task
 from django.core.mail import EmailMultiAlternatives, EmailMessage
 from typing import Union
@@ -134,3 +136,40 @@ def do_import(self, source: Union[str, bytes], user_id: int) -> None:
         raise ValueError(f'Отсутствует обязательное поле: {str(e)}')
     except Exception as e:
         raise ValueError(f'Ошибка импорта: {str(e)}')
+
+
+@shared_task()
+def export_products(product_ids):
+    """Формирование CSV-файла с информацией о продуктах"""
+
+    output = StringIO()
+    writer = csv.writer(output, delimiter=';', quoting=csv.QUOTE_ALL)
+
+    writer.writerow([
+        'ID', 'Модель', 'Продукт', 'Магазин',
+        'Количество', 'Цена', 'РРЦ', 'Параметры'
+    ])
+
+    queryset = ProductInfo.objects.filter(
+        id__in=product_ids
+    ).select_related('product', 'shop'
+                     ).prefetch_related('product_parameters')
+
+    for item in queryset:
+        params = ', '.join(
+            f'{param.parameter.name}: {param.value}'
+            for param in item.product_parameters.all()
+        )
+
+        writer.writerow([
+            item.id,
+            item.model,
+            item.product.name,
+            item.shop.name,
+            item.quantity,
+            item.price,
+            item.price_rrc,
+            params.replace('\n', ' ')
+        ])
+
+    return output.getvalue().encode('utf-8-sig')

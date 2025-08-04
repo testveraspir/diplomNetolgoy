@@ -1,11 +1,15 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.db.models import Sum, F
+from django.db import transaction
+from django.utils.html import format_html
+from django.urls import reverse
+from django.utils.translation import gettext_lazy as _
 from backend.models import (User, Shop, Category, ProductInfo,
                             ProductParameter, Order, OrderItem,
                             Contact)
 from backend.signals import new_order_signal
-from django.db import transaction
+from backend.tasks import export_products
 
 
 class ContactInline(admin.TabularInline):
@@ -156,3 +160,18 @@ class ProductInfoAdmin(admin.ModelAdmin):
     list_display = ('model', 'external_id', 'product',
                     'shop', 'quantity', 'price', 'price_rrc')
     list_filter = ('shop', 'product__category')
+    search_fields = ('product__name', 'model')
+
+    actions = ['export_selected_products']
+
+    @admin.action(description=_('Экспортировать выбранные товары'))
+    def export_selected_products(self, request, queryset):
+        if not queryset.exists():
+            self.message_user(request, 'Нужно выбрать продукты.')
+            return
+        product_ids = list(queryset.values_list('pk', flat=True))
+        task = export_products.delay(product_ids)
+        message = f"Сформирован CSV-экспорт товаров." \
+                  f" <a href='{reverse('backend:download-csv')}?task_id={task.id}'" \
+                  f">Скачать можно здесь</a>"
+        self.message_user(request, format_html(message), extra_tags='safe')
