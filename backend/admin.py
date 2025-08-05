@@ -1,15 +1,19 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
+from django.core.validators import URLValidator
+from django.core.exceptions import ValidationError
 from django.db.models import Sum, F
 from django.db import transaction
+from django.shortcuts import render
+from django.http import HttpResponseRedirect
 from django.utils.html import format_html
-from django.urls import reverse
+from django.urls import reverse, path
 from django.utils.translation import gettext_lazy as _
 from backend.models import (User, Shop, Category, ProductInfo,
                             ProductParameter, Order, OrderItem,
                             Contact)
 from backend.signals import new_order_signal
-from backend.tasks import export_products
+from backend.tasks import export_products, do_import
 
 
 class ContactInline(admin.TabularInline):
@@ -28,7 +32,7 @@ class CustomUserAdmin(UserAdmin):
     model = User
 
     fieldsets = (
-        (None, {'fields': ('email', 'password')}),
+        (None, {'fields': ('email', 'password', 'type', 'is_active')}),
         ('Персональная информация', {'fields': ('first_name', 'last_name',
                                                 'company', 'position')}),
         ('Даты', {'fields': ('date_joined', )}),
@@ -36,6 +40,60 @@ class CustomUserAdmin(UserAdmin):
     list_display = ('email', 'first_name', 'last_name', 'is_staff', 'type')
     list_editable = ('type',)
     inlines = [ContactInline]
+
+    change_list_template = 'import_form.html'
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path('import-from-url/',
+                 self.admin_site.admin_view(self.import_from_url),
+                 name='import-from-url')
+        ]
+        return custom_urls + urls
+
+    def import_from_url(self, request):
+        if request.method == 'POST':
+            source_type = request.POST.get('source_type')
+            user_id_str = request.POST.get('user_id')
+            source = None
+
+            try:
+                user_id = int(user_id_str)
+                user = User.objects.get(pk=user_id)
+                if user.type != 'shop':
+                    raise ValueError("Пользователь не является магазином")
+            except (ValueError, User.DoesNotExist) as e:
+                self.message_user(request, f'Ошибка: {str(e)}')
+                return HttpResponseRedirect('../')
+
+            if source_type == 'url':
+                url = request.POST.get('url', '').strip()
+                try:
+                    URLValidator()(url)
+                    source = url
+                except ValidationError as e:
+                    self.message_user(request, f'Ошибка URL: {str(e)}')
+                    return HttpResponseRedirect('../')
+
+            elif source_type == 'file':
+                uploaded_file = request.FILES.get('file')
+                if not uploaded_file:
+                    self.message_user(request, 'Файл не загружен')
+                    return HttpResponseRedirect('../')
+
+                if not uploaded_file.name.endswith(('.yaml', '.yml')):
+                    self.message_user(request, 'Файл должен быть в формате YAML')
+                    return HttpResponseRedirect('../')
+
+                source = uploaded_file.read()
+
+            do_import.delay(source, user_id)
+            self.message_user(request, 'Импорт начат в фоновом режиме')
+            return HttpResponseRedirect('../')
+
+        shops = Shop.objects.all()
+        return render(request, 'import_form.html', {'shops': shops})
 
 
 class OrderItemInline(admin.TabularInline):

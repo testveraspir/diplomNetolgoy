@@ -1,0 +1,53 @@
+{% extends "admin/change_list.html" %}
+
+{% load static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'css/import_form.css' %}">
+{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<script src="{% static 'js/import_form.js' %}" defer></script>
+{% endblock %}
+
+{% block content %}
+<div class="import-container">
+    <form method="post" action="import-from-url/" enctype="multipart/form-data">
+        {% csrf_token %}
+        <h2 class="import-title">Импорт данных</h2>
+
+        <div class="radio-group">
+            <label class="radio-option">
+                <input type="radio" id="source_url" name="source_type" value="url" checked>
+                URL YAML-файла
+            </label>
+
+            <label class="radio-option">
+                <input type="radio" id="source_file" name="source_type" value="file">
+                Загрузить файл
+            </label>
+        </div>
+
+        <div id="url_field" class="form-group">
+            <label for="url" class="form-label">URL:</label>
+            <input type="text" name="url" id="url" class="form-input"
+                   placeholder="https://example.com/data.yaml">
+        </div>
+
+        <div id="file_field" class="form-group hidden">
+            <label for="file" class="form-label">Файл:</label>
+            <input type="file" name="file" id="file" class="form-input" accept=".yaml,.yml">
+        </div>
+
+        <div class="form-group">
+            <label for="user_id" class="form-label">ID пользователя:</label>
+            <input type="number" name="user_id" id="user_id" required class="form-input">
+        </div>
+
+        <button type="submit" class="submit-btn">Начать импорт</button>
+    </form>
+</div>
+{{ block.super }}
+{% endblock %}
