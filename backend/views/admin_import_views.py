@@ -18,17 +18,8 @@ class ImportFromAdmin(View):
 
     def post(self, request):
         source_type = request.POST.get('source_type')
-        user_id_str = request.POST.get('user_id')
+        user_id = request.POST.get('user_id')
         source = None
-
-        try:
-            user_id = int(user_id_str)
-            user = User.objects.get(pk=user_id)
-            if user.type != 'shop':
-                raise ValueError("Пользователь не является магазином")
-        except (ValueError, User.DoesNotExist) as e:
-            messages.error(request, f'Ошибка: {str(e)}')
-            return self.redirect_to_admin()
 
         if source_type == 'url':
             url = request.POST.get('url', '').strip()
