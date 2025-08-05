@@ -4,7 +4,8 @@ from django_rest_passwordreset.views import reset_password_request_token, reset_
 from backend.views import (PartnerUpdate, RegisterAccount, LoginAccount,
                            CategoryView, ShopView, ProductInfoView, BasketView,
                            AccountDetails, ContactView, OrderView, PartnerState,
-                           PartnerOrders, ConfirmAccount, download_csv_view)
+                           PartnerOrders, ConfirmAccount, ImportFromAdmin,
+                           download_csv_view)
 
 app_name = 'backend'
 urlpatterns = [
@@ -25,5 +26,7 @@ urlpatterns = [
     path('basket', BasketView.as_view(), name='basket'),
     path('order', OrderView.as_view(), name='order'),
     path('download_csv', download_csv_view, name='download-csv'),
+    path('import-from-admin', ImportFromAdmin.as_view(), name='import-from-admin'),
+    path('import-from-admin/tasks/<str:task_id>', ImportFromAdmin.as_view(), name='task-status-admin'),
 
 ]

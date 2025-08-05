@@ -14,7 +14,7 @@
 
 {% block content %}
 <div class="import-container">
-    <form method="post" action="import-from-url/" enctype="multipart/form-data">
+    <form method="post" action="{% url 'admin:import-from-admin' %}" enctype="multipart/form-data">
         {% csrf_token %}
         <h2 class="import-title">Импорт данных</h2>
 
