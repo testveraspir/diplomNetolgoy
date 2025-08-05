@@ -53,3 +53,22 @@
 .hidden {
     display: none;
 }
+
+.form-input {
+    height: 40px;
+    padding: 10px 12px;
+    line-height: 1.5;
+    box-sizing: border-box;
+}
+
+.alert {
+    padding: 12px;
+    border-radius: 4px;
+    margin-bottom: 15px;
+}
+
+.alert-warning {
+    background-color: #fff3cd;
+    border: 1px solid #ffeeba;
+    color: #856404;
+}

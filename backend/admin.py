@@ -36,6 +36,7 @@ class CustomUserAdmin(UserAdmin):
     )
     list_display = ('email', 'first_name', 'last_name', 'is_staff', 'type')
     list_editable = ('type',)
+    list_filter = ('type',)
     inlines = [ContactInline]
 
     change_list_template = 'import_form.html'
@@ -51,6 +52,12 @@ class CustomUserAdmin(UserAdmin):
                  name='task-status-admin')
         ]
         return custom_urls + urls
+
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        extra_context['title'] = ""
+        extra_context['shop_users'] = User.objects.filter(type='shop')
+        return super().changelist_view(request, extra_context=extra_context)
 
 
 class OrderItemInline(admin.TabularInline):

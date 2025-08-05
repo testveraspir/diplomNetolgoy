@@ -42,12 +42,27 @@
         </div>
 
         <div class="form-group">
-            <label for="user_id" class="form-label">ID пользователя:</label>
-            <input type="number" name="user_id" id="user_id" required class="form-input">
+            <label for="user_id"
+                   class="form-label">Выберите пользователя, в магазин которого нужно загрузить товары:</label>
+            {% if shop_users %}
+                <select name="user_id" id="user_id" required class="form-input">
+                    {% for user in shop_users %}
+                    <option value="{{ user.id }}">{{ user.email }}</option>
+                    {% endfor %}
+                </select>
+                {% else %}
+        <div class="alert alert-warning">
+            Нет пользователей, содержащих магазин.
+        </div>
+        <input type="hidden" name="user_id" value="">
+    {% endif %}
         </div>
 
         <button type="submit" class="submit-btn">Начать импорт</button>
     </form>
 </div>
-{{ block.super }}
+<div class="user-list-section">
+    <h1>Выберите пользователя для изменения</h1>
+    {{ block.super }}
+</div>
 {% endblock %}
