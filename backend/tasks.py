@@ -1,5 +1,6 @@
-import csv
-from io import StringIO
+from io import BytesIO
+from openpyxl import Workbook
+from openpyxl.utils import get_column_letter
 from celery import shared_task
 from django.core.mail import EmailMultiAlternatives, EmailMessage
 from typing import Union
@@ -140,15 +141,17 @@ def do_import(self, source: Union[str, bytes], user_id: int) -> None:
 
 @shared_task()
 def export_products(product_ids):
-    """Формирование CSV-файла с информацией о продуктах"""
+    """Формирование Excel-файла с информацией о продуктах"""
 
-    output = StringIO()
-    writer = csv.writer(output, delimiter=';', quoting=csv.QUOTE_ALL)
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Экспорт товаров"
 
-    writer.writerow([
+    headers = [
         'ID', 'Модель', 'Продукт', 'Магазин',
         'Количество', 'Цена', 'РРЦ', 'Параметры'
-    ])
+    ]
+    ws.append(headers)
 
     queryset = ProductInfo.objects.filter(
         id__in=product_ids
@@ -161,7 +164,7 @@ def export_products(product_ids):
             for param in item.product_parameters.all()
         )
 
-        writer.writerow([
+        row = [
             item.id,
             item.model,
             item.product.name,
@@ -170,6 +173,27 @@ def export_products(product_ids):
             item.price,
             item.price_rrc,
             params.replace('\n', ' ')
-        ])
+        ]
 
-    return output.getvalue().encode('utf-8-sig')
+        ws.append(row)
+
+    # настройка ширины столбцов
+    for col_idx, _ in enumerate(headers, 1):
+        max_length = 0
+        column_letter = get_column_letter(col_idx)
+
+        for cell in ws[column_letter]:
+            try:
+                if cell.value is not None:
+                    max_length = max(max_length, len(str(cell.value)))
+            except:
+                pass
+
+        ws.column_dimensions[column_letter].width = (max_length + 2) * 1.2
+
+    # сохраняем в BytesIO
+    excel_file = BytesIO()
+    wb.save(excel_file)
+    excel_file.seek(0)
+
+    return excel_file.getvalue()

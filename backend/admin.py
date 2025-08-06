@@ -193,7 +193,7 @@ class ProductInfoAdmin(admin.ModelAdmin):
             return
         product_ids = list(queryset.values_list('pk', flat=True))
         task = export_products.delay(product_ids)
-        message = f"Сформирован CSV-экспорт товаров." \
+        message = f"Сформирован Excel-экспорт товаров." \
                   f" <a href='{reverse('backend:download-csv')}?task_id={task.id}'" \
                   f">Скачать можно здесь</a>"
         self.message_user(request, format_html(message), extra_tags='safe')
