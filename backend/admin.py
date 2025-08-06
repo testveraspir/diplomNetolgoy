@@ -157,6 +157,7 @@ class ShopAdmin(admin.ModelAdmin):
     list_display = ('name', 'url', 'user', 'state')
     list_filter = ('state',)
     search_fields = ('name', 'user__email')
+    search_help_text = "Поиск по: названию магазина и email пользователя"
 
 
 @admin.register(Category)
@@ -183,6 +184,7 @@ class ProductInfoAdmin(admin.ModelAdmin):
                     'shop', 'quantity', 'price', 'price_rrc')
     list_filter = ('shop', 'product__category')
     search_fields = ('product__name', 'model')
+    search_help_text = "Поиск по: названию продукта и модели"
 
     actions = ['export_selected_products']
 
