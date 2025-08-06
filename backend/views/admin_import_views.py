@@ -7,7 +7,6 @@ from django.views import View
 from django.contrib.admin.views.decorators import staff_member_required
 from django.utils.decorators import method_decorator
 from django.utils.safestring import mark_safe
-from backend.models import User
 from backend.tasks import do_import
 from celery.result import AsyncResult
 
@@ -48,7 +47,8 @@ class ImportFromAdmin(View):
 
         task = do_import.delay(source, user_id)
         cache.set(f"task_owner_{task.id}", request.user.id, timeout=86400)
-        task_url = reverse('admin:task-status-admin', kwargs={'task_id': str(task.id)})
+        task_url = reverse('admin:task-status-admin',
+                           kwargs={'task_id': str(task.id)})
         message = mark_safe(
             f'Импорт начат в фоновом режиме.'
             f' <a href="{task_url}">Проверить результат</a>')
@@ -71,8 +71,11 @@ class ImportFromAdmin(View):
         elif task.ready():
             messages.success(request, 'Данные успешно загружены в таблицу')
         else:
-            messages.info(request, 'Идёт процесс загрузки данных')
-
+            task_url = reverse('admin:task-status-admin',
+                               kwargs={'task_id': str(task.id)})
+            refresh_message = mark_safe('Идёт процесс загрузки данных. '
+                                        f'<a href="{task_url}">Обновить статус</a>')
+            messages.info(request, refresh_message)
         return self.redirect_to_admin()
 
     def redirect_to_admin(self):
