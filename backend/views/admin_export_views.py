@@ -1,6 +1,32 @@
 from django.http import HttpResponse
 from django.views.decorators.http import require_GET
 from celery.result import AsyncResult
+from django.utils.safestring import mark_safe
+
+
+def get_task_status_html(current_url):
+    """Генерирует HTML с автоматической проверкой статуса задачи"""
+
+    return mark_safe(f"""
+    <div id="task-status">
+        <p>Идёт подготовка файла... (автообновление через 3 сек)</p>
+        <script>
+            function checkStatus() {{
+                fetch('{current_url}', {{ headers: {{ 'X-Requested-With': 'XMLHttpRequest' }} }})
+                    .then(response => {{
+                        if (response.status === 200) {{
+                            document.getElementById('task-status').innerHTML = 
+                                '<p style="color:green">✓ Файл готов для загрузки!</p>';
+                            window.location.href = '{current_url}';
+                        }} else {{
+                            setTimeout(() => window.location.reload(), 3000);
+                        }}
+                    }});
+            }}
+            setTimeout(checkStatus, 3000);
+        </script>
+    </div>
+    """)
 
 
 @require_GET
@@ -30,6 +56,5 @@ def download_csv_view(request):
     elif result.failed():
         return HttpResponse('Произошла ошибка при формировании файла',
                             status=500)
-    else:
-        return HttpResponse('Данные ещё формируются. Попробуйте снова через минуту.',
-                            status=202)
+    return HttpResponse(get_task_status_html(request.get_full_path()),
+                        status=202)
