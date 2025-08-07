@@ -2,5 +2,7 @@
 
 ## Документация
 
-- [Задание](TASK.md)
-- [Документация API](Documentation.md)
+- [Задание](documents/TASK.md)
+- [Документация API](documents/Documentation.md)
+- [Структура проекта](documents/PROJECT_STRUCTURE.md)
+- [Инструкция по запуску](documents/Commands.md)
