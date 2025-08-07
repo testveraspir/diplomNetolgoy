@@ -28,7 +28,7 @@
 
 ## Доступные действия для неавторизованного пользователя
 ### 1. Регистрация пользователя
-```http
+```
 POST http://example:8000/api/v1/user/register
 Content-Type: application/json
 
@@ -43,7 +43,7 @@ Content-Type: application/json
 
 ```
 **Успешный ответ**
-```http
+```
 201 Created
 {
     "Status": true
@@ -55,7 +55,7 @@ Content-Type: application/json
 Токен необходимо отправить обратно в API для завершения регистрации.
 
 **Возможные ошибки**
-```http
+```
 400 Bad Request
 {
     "Status": false,
@@ -68,7 +68,7 @@ Content-Type: application/json
 ```
 ### 2. Подтверждение email
 
-```http
+```
 POST http://example:8000/api/v1/user/register/confirm
 Content-Type: application/json
 
@@ -79,7 +79,7 @@ Content-Type: application/json
 
 ```
 **Успешный ответ**
-```http
+```
 200 OK
 {
     "Status": true
@@ -87,7 +87,7 @@ Content-Type: application/json
 
 ```
 **Возможные ошибки**
-```http
+```
 400 Bad Request
 {
     "Status": false,
@@ -95,7 +95,7 @@ Content-Type: application/json
 }
 ```
 ### 3. Авторизация пользователя
-```http
+```
 POST http://example:8000/api/v1/user/login
 Content-Type: application/json
 
@@ -105,7 +105,7 @@ Content-Type: application/json
 }
 ```
 **Успешный ответ**
-```http
+```
 200 OK
 {
     "Status": true,
@@ -113,7 +113,7 @@ Content-Type: application/json
 }
 ```
 **Возможные ошибки**
-```http
+```
 400 Bad Request
 {
     "Status": false,
@@ -121,7 +121,7 @@ Content-Type: application/json
 }
 ```
 ### 4. Запрос на сброс пароля
-```http
+```
 POST http://example:8000/api/v1/user/password_reset
 Content-Type: application/json
 {
@@ -129,7 +129,7 @@ Content-Type: application/json
 }
 ```
 **Успешный ответ**
-```http
+```
 200 OK
 {
     "status": "OK"
@@ -138,7 +138,7 @@ Content-Type: application/json
 После успешного запроса пользователь получает email с токеном для сброса пароля.
 
 **Возможные ошибки**
-```http
+```
 400 Bad Request
 {
     "email": [
@@ -146,7 +146,7 @@ Content-Type: application/json
     ]
 }
 ```
-```http
+```
 400 Bad Request
 {
     "email": [
@@ -154,7 +154,8 @@ Content-Type: application/json
     ]
 }
 ```
-```http
+```
+400 Bad Request
 {
     "email": [
         "Обязательное поле."
@@ -163,7 +164,7 @@ Content-Type: application/json
 ```
 ### 5. Подтверждение сброса пароля
 Вставить токен из пункта 4 и новый пароль
-```http
+```
 POST http://example:8000/api/v1/user/password_reset/confirm
 Content-Type: application/json
 {
@@ -172,7 +173,7 @@ Content-Type: application/json
 }
 ```
 **Успешный ответ**
-```http
+```
 200 OK
 {
     "status": "OK"
@@ -180,7 +181,7 @@ Content-Type: application/json
 ```
 
 **Возможные ошибки**
-```http
+```
 400 Bad Request
  {
     "password": [
@@ -191,7 +192,7 @@ Content-Type: application/json
     ]
 }
 ```
-```http
+```
 400 Bad Request
 {
     "password": [
@@ -202,7 +203,7 @@ Content-Type: application/json
 }
 
 ```
-```http
+```
 400 Bad Request
 {
     "password": [
@@ -210,7 +211,7 @@ Content-Type: application/json
     ]
 }
 ```
-```http
+```
 404 Not Found
 {
     "detail": "Введённый одноразовый пароль недействителен. Проверьте и попробуйте снова."
@@ -218,12 +219,12 @@ Content-Type: application/json
 ```
 
 ### 6. Получение магазинов (только активных: state=True)
-```http
+```
 GET http://example.com:8000/api/v1/shops
 Content-Type: application/json
 ```
 **Успешный ответ**
-```http
+```
 200 OK
 {
     "count": ...,
@@ -240,12 +241,12 @@ Content-Type: application/json
 }
 ```
 ### 7. Получение категорий
-```http
+```
 GET http://example.com:8000/api/v1/categories
 Content-Type: application/json
 ```
 **Успешный ответ**
-```http
+```
 200 OK
 {
     "count": ...,
@@ -261,12 +262,12 @@ Content-Type: application/json
 }
 ```
 ### 8. Поиск товара
-```http
+```
 GET http://example.com:8000/api/v1/products?shop_id=...&category_id=...
 Content-Type: application/json
 ```
 **Успешный ответ**
-```http
+```
 200 OK
 {
         "id": ...,
@@ -292,7 +293,7 @@ Content-Type: application/json
 
 ## Доступные действия для авторизованного пользователя
 ### 1. Добавление контактов
-```http
+```
 POST http://example:8000/api/v1/user/contact
 Authorization: Token ...
 Content-Type: application/json
@@ -303,22 +304,21 @@ Content-Type: application/json
 }
 ```
 **Успешный ответ**
-```http
+```
 201 Created
 {
     "Status": true
 }
 ```
 **Возможные ошибки**
-```http
+```
 400 Bad Request
 {
     "Status": false,
     "Errors": "Превышен лимит контактов (максимум 5)"
 }
 ```
-```http
-
+```
 400 Bad Request
 {
     "Status": false,
@@ -326,7 +326,7 @@ Content-Type: application/json
 }
 ```
 ### 2. Обновление контактов
-```http
+```
 PUT http://example:8000/api/v1/user/contact
 Authorization: Token ...
 Content-Type: application/json
@@ -336,14 +336,14 @@ Content-Type: application/json
 }
 ```
 **Успешный ответ**
-```http
+```
 200 OK
 {
     "Status": true
 }
 ```
 **Возможные ошибки**
-```http
+```
 400 Bad Request
 {
     "Status": false,
@@ -351,13 +351,13 @@ Content-Type: application/json
 }
 ```
 ### 3. Получение контактов
-```http
+```
 GET http://example:8000/api/v1/user/contact
 Authorization: Token ...
 Content-Type: application/json
 ```
 **Успешный ответ**
-```http
+```
 200 OK
 [
     {
@@ -374,18 +374,18 @@ Content-Type: application/json
    ]
 ```
 ### 4. Удаление контактов
-```http
+```
 DELETE http://example:8000/api/v1/user/contact
 Authorization: Token ...
 Content-Type: application/json
 {
-    "items": "id1,id2,id3,......"
+    "items": "id1,id2,id3,..."
 }
 ```
 items - строка, содеражащая id контактов, которые нужно удалить (разделитель - запятая, пробелы не допускаются)
 
 **Успешный ответ**
-```http
+```
 200 OK
 {
     "Status": true,
@@ -393,7 +393,7 @@ items - строка, содеражащая id контактов, которы
 }
 ```
 **Возможные ошибки**
-```http
+```
 404 Not Found
 {
     "Status": false,
@@ -401,13 +401,13 @@ items - строка, содеражащая id контактов, которы
 }
 ```
 ### 5. Получение данных пользователя
-```http
+```
 GET http://example:8000/api/v1/user/details
 Authorization: Token ...
 Content-Type: application/json
 ```
 **Успешный ответ**
-```http
+```
 200 OK
 {
     "id": ...,
@@ -427,13 +427,13 @@ Content-Type: application/json
             "apartment": "...",
             "phone": "..."
         },
-        ..
+        ...
     ]
 }
 ```
 ### 6. Редактирование данных пользователя
 Должно быть хотя бы одно поле
-```http
+```
 POST http://example:8000/api/v1/user/details
 Authorization: Token ...
 Content-Type: application/json
@@ -447,21 +447,21 @@ Content-Type: application/json
 }
 ```
 **Успешный ответ**
-```http
+```
 200 OK
 {
     "Status": true
 }
 ```
 **Возможные ошибки**
-```http
+```
 400 Bad Request
 {
     "Status": false,
     "Errors": "Необходимо указать хотя бы: 'first_name', 'last_name', 'email', 'company', 'position', password' "
 }
 ```
-```http
+```
 400 Bad Request
 {
     "Status": false,
@@ -472,7 +472,7 @@ Content-Type: application/json
     }
 }
 ```
-```http
+```
 400 Bad Reques
 {
     "Status": false,
@@ -484,7 +484,7 @@ Content-Type: application/json
 }
 ```
 ### 7. Добавление товаров в корзину
-```http
+```
 POST http://example.com:8000/api/v1/basket
 Authorization: Token ...
 Content-Type: application/json
@@ -496,7 +496,7 @@ Content-Type: application/json
 }
 ```
 **Успешный ответ**
-```http
+```
 201 Created
 {
     "Status": true,
@@ -504,7 +504,7 @@ Content-Type: application/json
 }
 ```
 **Возможные ошибки**
-```http
+```
 400 Bad Request
 {
     "Status": false,
@@ -513,7 +513,7 @@ Content-Type: application/json
     ]
 }
 ```
-```http
+```
 400 Bad Request
 {
     "Status": false,
@@ -522,7 +522,7 @@ Content-Type: application/json
     ]
 }
 ```
-```http
+```
 400 Bad Request
 {
     "Status": false,
@@ -532,7 +532,7 @@ Content-Type: application/json
 }
 ```
 
-```http
+```
 400 Bad Request
 {
     "Status": false,
@@ -541,7 +541,7 @@ Content-Type: application/json
     ]
 }
 ```
-```http
+```
 400 Bad Request
 {
     "Status": false,
@@ -550,8 +550,8 @@ Content-Type: application/json
     ]
 }
 ```
-```http
-400Bad Request
+```
+400 Bad Request
 {
     "Status": false,
     "Errors": [
@@ -560,7 +560,7 @@ Content-Type: application/json
 }
 ```
 ### 8. Обновление количества товаров в корзине
-```http
+```
 PUT http://example.com:8000/api/v1/basket
 Authorization: Token ...
 Content-Type: application/json
@@ -572,7 +572,7 @@ Content-Type: application/json
 }
 ```
 **Успешный ответ**
-```http
+```
 200 OK
 {
     "Status": true,
@@ -581,7 +581,7 @@ Content-Type: application/json
 }
 ```
 **Возможные ошибки**
-```http
+```
 400 Bad Request
 {
     "Status": false,
@@ -590,7 +590,7 @@ Content-Type: application/json
     ]
 }
 ```
-```http
+```
 400 Bad Request
 {
     "Status": false,
@@ -599,7 +599,7 @@ Content-Type: application/json
     ]
 }
 ```
-```http
+```
 400 Bad Request
 {
     "Status": false,
@@ -609,7 +609,7 @@ Content-Type: application/json
 }
 
 ```
-```http
+```
 400 Bad Request
 {
     "Status": false,
@@ -620,13 +620,13 @@ Content-Type: application/json
 ```
 
 ### 9. Получение содержание корзины
-```http
+```
 GET http://example.com:8000/api/v1/basket
 Authorization: Token ...
 Content-Type: application/json
 ```
 **Успешный ответ**
-```http
+```
 200 OK
 [
     {
@@ -665,7 +665,7 @@ Content-Type: application/json
 ]
 ```
 ### 10. Удаление товаров из корзины
-```http
+```
 DELETE http://example:8000/api/v1/basket
 Authorization: Token ...
 Content-Type: application/json
@@ -676,7 +676,7 @@ Content-Type: application/json
 items - строка, содеражащая id информации о продуктах, которые нужно удалить (разделитель - запятая, пробелы не допускаются)
 
 **Успешный ответ**
-```http
+```
 200 OK
 {
     "Status": true,
@@ -684,21 +684,21 @@ items - строка, содеражащая id информации о прод
 }
 ```
 **Возможные ошибки**
-```http
+```
 400 Bad Request
 {
     "Status": false,
     "Errors": "Не указаны товары для удаления"
 }
 ```
-```http
+```
 400 Bad Request
 {
     "Status": false,
       "Errors": "Указанные товары не найдены в корзине"
 }
 ```
-```http
+```
 400 Bad Request
 {
     "Status": false,
@@ -706,13 +706,13 @@ items - строка, содеражащая id информации о прод
 }
 ```
 ### 11. Получение своих заказов (кроме корзины)
-```http
+```
 GET http://example.com:8000/api/v1/order
 Authorization: Token ...
 Content-Type: application/json
 ```
 **Успешный ответ**
-```http
+```
 200 OK
 [
     {
@@ -760,7 +760,7 @@ Content-Type: application/json
 ]
 ```
 ### 12. Размещение заказа
-```http
+```
 POST http://example.com:8000/api/v1/order
 Authorization: Token ...
 Content-Type: application/json
@@ -770,7 +770,7 @@ Content-Type: application/json
 }
 ```
 **Успешный ответ**
-```http
+```
 200 OK
 {
     "Status": true
@@ -785,14 +785,14 @@ Content-Type: application/json
 ![Накладная](img_documentation/invoice.png)
 
 **Возможные ошибки**
-```http
+```
 400 Bad Request
 {
     "Status": false,
     "Errors": "Поля \"id\" и \"contact\" должны быть числами."
 }
 ```
-```http
+```
 401 Not Found
 {
     "Status": false,
@@ -800,7 +800,7 @@ Content-Type: application/json
 }
 ```
 
-```http
+```
 401 Not Found
 {
     "Status": false,
