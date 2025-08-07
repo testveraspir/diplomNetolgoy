@@ -1,0 +1,1 @@
+celery -A orders worker -c 1 -l info -P gevent
