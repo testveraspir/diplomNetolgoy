@@ -814,7 +814,7 @@ Content-Type: application/json
 
 - Если товар в магазине существует → обновляет его количество
 - Если товар в магазине отсутствует → добавляет новую запись
-```http
+```
 POST http://example:8000/api/v1/partner/update
 Authorization: Token ...
 Content-Type: application/json
@@ -823,7 +823,7 @@ Content-Type: application/json
 }
 ```
 ИЛИ
-```http
+```
 POST http://example:8000/api/v1/partner/update
 Authorization: Token ...
 Content-Type: multipart/form-data;
@@ -832,7 +832,7 @@ Content-Type: multipart/form-data;
 ![пример из POSTMAN](img_documentation/yaml_file.png)
 
 **Успешный ответ**
-```http
+```
 202 Accepted
 {
     "Status": true,
@@ -843,28 +843,28 @@ Content-Type: multipart/form-data;
 
 ```
 **Возможные ошибки**
-```http
+```
 400 Bad Request
 {
     "Status": false,
     "Error": "['Введите корректный адрес сайта (URL).']"
 }
 ```
-```http
+```
 400 Bad Request
 {
     "Status": false,
     "Error": "Укажите URL или загрузите YAML-файл"
 }
 ```
-```http
+```
 400 Bad Request
 {
     "Status": false,
     "Error": "['Файл должен быть в формате YAML (.yaml/.yml)']"
 }
 ```
-```http
+```
 500 Internal Server Error
 {
     "Status": false,
@@ -873,13 +873,13 @@ Content-Type: multipart/form-data;
 ```
 
 ### 2. Проверка статуса обновления
-```http
+```
 GET http://example:8000/api/v1/partner/tasks/{str:task_id}
 Authorization: Token ...
 Content-Type: application/json
 ```
 **Успешный ответ**
-```http
+```
 200 OK
 {
     "Status": true,
@@ -887,7 +887,7 @@ Content-Type: application/json
 }
 ```
 **Возможные ошибки**
-```http
+```
 400 Bad Request
 {
     "Status": false,
@@ -896,21 +896,21 @@ Content-Type: application/json
 }
 
 ```
-```http
+```
 404 Not Found
 {
     "Status": false,
     "Error": "Задачи не существует."
 }
 ```
-```http
+```
 403 Forbidden
 {
     "Status": false,
     "Error": "У вас нет прав на просмотр этой задачи."
 }
 ```
-```http
+```
 400 Bad Request
 {
     "Status": false,
@@ -918,13 +918,13 @@ Content-Type: application/json
 }
 ```
 ### 3. Получение статус магазина
-```http
+```
 GET http://example.com:8000/api/v1/partner/state
 Authorization: Token ...
 Content-Type: application/json
 ```
 **Успешный ответ**
-```http
+```
 200 OK
 {
     "id": ...,
@@ -933,7 +933,7 @@ Content-Type: application/json
 }
 ```
 ### 4. Обновление статуса магазина
-```http
+```
 POST http://example.com:8000/api/v1/partner/state
 Authorization: Token ...
 Content-Type: application/json
@@ -942,14 +942,14 @@ Content-Type: application/json
 }
 ```
 **Успешный ответ**
-```http
+```
 200 OK
 {
     "Status": true
 }
 ```
 **Возможные ошибки**
-```http
+```
 400 Bad Request
 {
     "Status": false,
@@ -960,13 +960,13 @@ Content-Type: application/json
 
 
 ### 5. Получение сформированных заказов (в заказах указаны товары только своего магазина)
-```http
+```
 GET http://example.com:8000/api/v1/partner/orders
 Authorization: Token ...
 Content-Type: application/json
 ```
 **Успешный ответ**
-```http
+```
 200 OK
 [
    {
@@ -1015,28 +1015,28 @@ Content-Type: application/json
 ```
 
 ### Общие ошибки
-```http
+```
 401 Unauthorized
 {
     "detail": "Недопустимый токен."
 }
 ```
-```http
+```
 401 Unauthorized
 {
     "Status": false,
     "Error": "Требуется авторизация."
 }
 ```
-```http
-400Bad Request
+```
+400 Bad Request
 {
     "Status": false,
     "Errors": "Необходимые поля отсутствуют."
 }
 ```
-```http
-403Forbidden
+```
+403 Forbidden
 {
     "Status": false,
     "Error": "Только для магазинов"
