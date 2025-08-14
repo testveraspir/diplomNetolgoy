@@ -1,9 +1,13 @@
 name: 'Test Coverage with Celery'
 on:
+  workflow_dispatch:
   pull_request:
     branches:
-      - master
       - main
+  push:
+    branches:
+      - main
+
 jobs:
   coverage:
     runs-on: ubuntu-latest
