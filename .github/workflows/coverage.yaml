@@ -4,6 +4,9 @@ on:
   pull_request:
     branches:
       - main
+  push:
+    branches:
+      - main
 
 jobs:
   coverage:
@@ -67,9 +70,42 @@ jobs:
         run: |
           coverage run --source='.' manage.py test
           coverage xml -o coverage.xml    
+          coverage report
 
-      - name: Get Cover
-        uses: orgoro/coverage@v3.2
-        with:
-          coverageFile: coverage.xml
-          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Extract coverage percentage
+        id: coverage
+        run: |
+          COVERAGE=$(grep -oP '(?<=<coverage line-rate=").*?(?=")' coverage.xml | awk '{print $1*100}')
+          echo "coverage=${COVERAGE}" >> $GITHUB_OUTPUT
+          echo "COVERAGE_PERCENTAGE=${COVERAGE}" >> $GITHUB_ENV
+
+      - name: Generate badge markdown
+        run: |
+          COLOR=$(if [ ${COVERAGE_PERCENTAGE} -lt 80 ]; then echo "red"; \
+                 elif [ ${COVERAGE_PERCENTAGE} -lt 90 ]; then echo "yellow"; \
+                 else echo "brightgreen"; fi)
+          
+          BADGE_MARKDOWN="![Coverage](https://img.shields.io/badge/Coverage-${COVERAGE_PERCENTAGE}%25-${COLOR}?logo=python)"
+          
+          echo "=============================================="
+          echo "ДИНАМИЧЕСКИЙ БЕЙДЖ ДЛЯ README.md"
+          echo "=============================================="
+          echo "Замените в вашем README.md строку с бейджем на:"
+          echo ""
+          echo "${BADGE_MARKDOWN}"
+          echo ""
+          echo "Текущее покрытие: ${COVERAGE_PERCENTAGE}%"
+          echo "=============================================="
+          
+          # Сохраняем для последующих шагов
+          echo "BADGE_MARKDOWN=${BADGE_MARKDOWN}" >> $GITHUB_ENV
+
+      - name: Create workflow summary
+        if: always()
+        run: |
+          echo "### Результаты тестового покрытия" >> $GITHUB_STEP_SUMMARY
+          echo "**Текущее покрытие:** ${COVERAGE_PERCENTAGE}%" >> $GITHUB_STEP_SUMMARY
+          echo "**Markdown для бейджа:**" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`markdown" >> $GITHUB_STEP_SUMMARY
+          echo "${BADGE_MARKDOWN}" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY

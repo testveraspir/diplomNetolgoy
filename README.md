@@ -6,3 +6,5 @@
 - [Документация API](documents/Documentation.md)
 - [Структура проекта](documents/PROJECT_STRUCTURE.md)
 - [Инструкция по запуску](documents/Commands.md)
+
+![Coverage](https://img.shields.io/badge/Coverage-0%25-red?logo=python)
