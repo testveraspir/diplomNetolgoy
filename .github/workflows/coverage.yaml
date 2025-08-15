@@ -72,20 +72,40 @@ jobs:
           coverage xml -o coverage.xml    
           coverage report
 
-      - name: Extract coverage percentage
+      - name: Extract and format coverage percentage
         id: coverage
         run: |
-          COVERAGE=$(grep -oP '(?<=<coverage line-rate=").*?(?=")' coverage.xml | awk '{print $1*100}')
-          echo "coverage=${COVERAGE}" >> $GITHUB_OUTPUT
-          echo "COVERAGE_PERCENTAGE=${COVERAGE}" >> $GITHUB_ENV
-
-      - name: Generate badge markdown
-        run: |
-          COLOR=$(if [ ${COVERAGE_PERCENTAGE} -lt 80 ]; then echo "red"; \
-                 elif [ ${COVERAGE_PERCENTAGE} -lt 90 ]; then echo "yellow"; \
-                 else echo "brightgreen"; fi)
+          # Извлекаем и форматируем процент покрытия
+          COVERAGE=$(grep -oP '(?<=line-rate=")[^"]+' coverage.xml | awk '{printf "%.2f", $1*100}')
+          COVERAGE_PERCENTAGE="${COVERAGE}%"
           
-          BADGE_MARKDOWN="![Coverage](https://img.shields.io/badge/Coverage-${COVERAGE_PERCENTAGE}%25-${COLOR}?logo=python)"
+          # Проверяем валидность значения
+          if [[ ! "$COVERAGE" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+            echo "::error::Invalid coverage value extracted: $COVERAGE"
+            exit 1
+          fi
+          
+          # Экспортируем переменные
+          echo "coverage=${COVERAGE}" >> $GITHUB_OUTPUT
+          echo "COVERAGE=${COVERAGE}" >> $GITHUB_ENV
+          echo "COVERAGE_PERCENTAGE=${COVERAGE_PERCENTAGE}" >> $GITHUB_ENV
+          
+          echo "Extracted coverage: ${COVERAGE_PERCENTAGE}"
+
+      - name: Generate coverage badge
+        run: |
+          # Определяем цвет бейджа
+          if (( $(echo "$COVERAGE < 80" | bc -l) )); then
+            COLOR="red"
+          elif (( $(echo "$COVERAGE < 90" | bc -l) )); then
+            COLOR="yellow"
+          else
+            COLOR="brightgreen"
+          fi
+          
+          # Формируем URL бейджа
+          BADGE_URL="https://img.shields.io/badge/Coverage-${COVERAGE_PERCENTAGE}-${COLOR}?logo=python&style=flat-square"
+          BADGE_MARKDOWN="![Test Coverage](${BADGE_URL})"
           
           echo "=============================================="
           echo "ДИНАМИЧЕСКИЙ БЕЙДЖ ДЛЯ README.md"
@@ -94,18 +114,21 @@ jobs:
           echo ""
           echo "${BADGE_MARKDOWN}"
           echo ""
-          echo "Текущее покрытие: ${COVERAGE_PERCENTAGE}%"
+          echo "Текущее покрытие: ${COVERAGE_PERCENTAGE}"
           echo "=============================================="
           
           # Сохраняем для последующих шагов
+          echo "BADGE_URL=${BADGE_URL}" >> $GITHUB_ENV
           echo "BADGE_MARKDOWN=${BADGE_MARKDOWN}" >> $GITHUB_ENV
 
       - name: Create workflow summary
         if: always()
         run: |
           echo "### Результаты тестового покрытия" >> $GITHUB_STEP_SUMMARY
-          echo "**Текущее покрытие:** ${COVERAGE_PERCENTAGE}%" >> $GITHUB_STEP_SUMMARY
+          echo "**Текущее покрытие:** ${COVERAGE_PERCENTAGE}" >> $GITHUB_STEP_SUMMARY
           echo "**Markdown для бейджа:**" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`markdown" >> $GITHUB_STEP_SUMMARY
           echo "${BADGE_MARKDOWN}" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Badge URL:**" >> $GITHUB_STEP_SUMMARY
+          echo "${BADGE_URL}" >> $GITHUB_STEP_SUMMARY
