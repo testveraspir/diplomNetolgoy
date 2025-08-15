@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'django_rest_passwordreset',
+    'drf_spectacular',
 ]
 
 MIDDLEWARE = [
@@ -164,6 +165,8 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.TokenAuthentication',
     ),
 
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+
 }
 
 LOCALE_PATHS = [
@@ -185,3 +188,16 @@ CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'Europe/Moscow'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Backend-приложение для автоматизации закупок',
+    'DESCRIPTION': """Приложение предназначено для автоматизации закупок в розничной сети через REST API.
+                      Клиент (покупатель): делает ежедневные закупки по каталогу, в котором представлены
+                       товары от нескольких поставщиков, в одном заказе можно указать товары от разных поставщиков.
+                       Пользователь может авторизироваться, регистрироваться и восстанавливать пароль через API.
+                       Поставщик: через API информирует сервис об обновлении прайса,
+                       может включать и отключать приём заказов, может получать список оформленных заказов
+                        (с товарами из его прайса).""",
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+}
