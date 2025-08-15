@@ -76,8 +76,7 @@ jobs:
         id: coverage
         run: |
           # Извлекаем и форматируем процент покрытия
-          COVERAGE=$(grep -oP '(?<=line-rate=")[^"]+' coverage.xml | awk '{printf "%.2f", $1*100}')
-          COVERAGE_PERCENTAGE="${COVERAGE}%"
+          COVERAGE=$(grep -oPm1 '(?<=line-rate=")[^"]+' coverage.xml | head -1 | awk '{printf "%.2f", $1*100}')
           
           # Проверяем валидность значения
           if [[ ! "$COVERAGE" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
@@ -85,6 +84,7 @@ jobs:
             exit 1
           fi
           
+          COVERAGE_PERCENTAGE="${COVERAGE}%"
           # Экспортируем переменные
           echo "coverage=${COVERAGE}" >> $GITHUB_OUTPUT
           echo "COVERAGE=${COVERAGE}" >> $GITHUB_ENV
