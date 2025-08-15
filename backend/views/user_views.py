@@ -10,10 +10,13 @@ from backend.models import Contact, ConfirmEmailToken
 from backend.permissions import IsAuthenticated
 from backend.serializers import UserSerializer, ContactSerializer
 from backend.signals import new_user_registered, new_order
+from backend.throttling import RegisterThrottle
 
 
 class RegisterAccount(APIView):
     """Класс для обработки запросов на регистрацию пользователей-покупателей."""
+
+    throttle_classes = [RegisterThrottle]
 
     def post(self, request, *args, **kwargs):
         """Обрабатывает запрос на регистрацию нового пользователя."""

@@ -3,6 +3,7 @@ from rest_framework.authtoken.models import Token
 from django.contrib.auth import get_user_model
 from backend.models import ConfirmEmailToken, Contact
 from django.urls import reverse
+from django.core.cache import cache
 
 
 User = get_user_model()
@@ -10,6 +11,7 @@ User = get_user_model()
 
 class RegisterAccountTests(APITestCase):
     def setUp(self):
+        cache.clear()
         self.client = APIClient()
         self.url = reverse('backend:user-register')
         self.valid_data = {'first_name': 'John',
