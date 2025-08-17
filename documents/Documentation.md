@@ -94,7 +94,7 @@ Content-Type: application/json
     "Errors": "Неправильно указан токен или email"
 }
 ```
-### 3. Авторизация пользователя
+### 3.a Авторизация пользователя
 ```
 POST http://example:8000/api/v1/user/login
 Content-Type: application/json
@@ -120,6 +120,30 @@ Content-Type: application/json
     "Errors": "Не удалось авторизовать"
 }
 ```
+### 3.b Авторизация пользователя через Яндекс
+Шаги:
+1) Пользователь переходит по URL авторизации
+```
+GET http://example:8000/social/complete/yandex-oauth2/
+```
+
+2) Система перенаправляет на страницу авторизации Яндекса
+3) После успешного входа Яндекс возвращает пользователя обратно с параметрами:
+
+```
+http://ваш-домен/social/complete/yandex-oauth2/?state=...&code=...&cid=...
+```
+Успешный ответ:
+```
+{
+  "status": "success",
+  "user_id": 123,
+  "email": "user@example.com",
+  "token": "abc123...",
+  "is_new_user": false
+}
+```
+
 ### 4. Запрос на сброс пароля
 ```
 POST http://example:8000/api/v1/user/password_reset
