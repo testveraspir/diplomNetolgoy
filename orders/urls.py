@@ -19,9 +19,17 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
+from backend.views import yandex_oauth_callback
 
 
 urlpatterns = [
+
+    path('auth/', include(('rest_framework_social_oauth2.urls', 'drfso2'), namespace='drfso2')),
+    path('social/complete/yandex-oauth2/', yandex_oauth_callback, name='yandex-oauth2-callback'),
+    path('social/', include('social_django.urls', namespace='social')),
+
+
+
     path('admin/', admin.site.urls),
     path('api/v1/', include('backend.urls', namespace='backend')),
 
