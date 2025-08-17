@@ -1,0 +1,74 @@
+.import-container {
+    margin-bottom: 20px;
+    padding: 20px;
+    background: #f8f8f8;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.import-title {
+    margin-top: 0;
+    color: #333;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.form-input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.radio-group {
+    margin-bottom: 15px;
+}
+
+.radio-option {
+    display: inline-block;
+    margin-right: 15px;
+}
+
+.submit-btn {
+    background: #417690;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.submit-btn:hover {
+    background: #305067;
+}
+
+.hidden {
+    display: none;
+}
+
+.form-input {
+    height: 40px;
+    padding: 10px 12px;
+    line-height: 1.5;
+    box-sizing: border-box;
+}
+
+.alert {
+    padding: 12px;
+    border-radius: 4px;
+    margin-bottom: 15px;
+}
+
+.alert-warning {
+    background-color: #fff3cd;
+    border: 1px solid #ffeeba;
+    color: #856404;
+}

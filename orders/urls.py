@@ -28,6 +28,7 @@ urlpatterns = [
     path('social/complete/yandex-oauth2/', yandex_oauth_callback, name='yandex-oauth2-callback'),
     path('social/', include('social_django.urls', namespace='social')),
 
+    path('admin/', include('baton.urls')),
     path('admin/', admin.site.urls),
     path('api/v1/', include('backend.urls', namespace='backend')),
 

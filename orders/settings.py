@@ -33,6 +33,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'baton',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -47,6 +48,7 @@ INSTALLED_APPS = [
     'oauth2_provider',
     'social_django',
     'rest_framework_social_oauth2',
+    'baton.autodiscover',
 ]
 
 MIDDLEWARE = [
@@ -207,7 +209,7 @@ CELERY_TIMEZONE = 'Europe/Moscow'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'Backend-приложение для автоматизации закупок',
+    'TITLE': 'Приложение для закупок',
     'DESCRIPTION': """Приложение предназначено для автоматизации закупок в розничной сети через REST API.
                       Клиент (покупатель): делает ежедневные закупки по каталогу, в котором представлены
                        товары от нескольких поставщиков, в одном заказе можно указать товары от разных поставщиков.
@@ -250,3 +252,34 @@ SOCIAL_AUTH_USER_MODEL = 'backend.User'
 
 SOCIAL_AUTH_URL_NAMESPACE = 'social'
 DRFSO2_URL_NAMESPACE = 'drfso2'
+
+BATON = {
+    'SITE_HEADER': 'Backend-приложение для автоматизации закупок',
+    'SITE_TITLE': 'Администрирование',
+    'INDEX_TITLE': 'Панель управления',
+    'SUPPORT_HREF': 'https://example.com/support',
+    'COPYRIGHT': '© 2025 Company',
+    'MENU': [
+        {
+            'type': 'app',
+            'name': 'auth',
+            'label': 'Аутентификация',
+            'icon': 'fa fa-users',
+            'models': [
+                {'name': 'user', 'label': 'Пользователи'},
+                {'name': 'group', 'label': 'Группы'},
+            ]
+        },
+        {
+            'type': 'app',
+            'name': 'backend',
+            'label': 'Магазин',
+            'icon': 'fa fa-shopping-cart',
+            'models': [
+                {'name': 'shop', 'label': 'Магазины'},
+                {'name': 'category', 'label': 'Категории'},
+                {'name': 'order', 'label': 'Заказы'},
+            ]
+        },
+    ],
+}
