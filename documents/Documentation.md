@@ -298,7 +298,9 @@ Content-Type: application/json
         "model": "...",
         "product": {
             "name": "...",
-            "category": "..."
+            "category": "...",
+            "image": ...,
+            "thumbnails": {}
         },
         "shop": ...,
         "quantity": ...,
@@ -452,6 +454,25 @@ Content-Type: application/json
             "phone": "..."
         },
         ...
+    "avatar": {
+        "width": ...,
+        "height": ...,
+        "url": "..."
+    },
+    "avatar_thumbnails": {
+        "50x50": {
+            "url": "...",
+            "dimensions": "50x50"
+        },
+        "100x100": {
+            "url": "...",
+            "dimensions": "100x100"
+        },
+        "200x200": {
+            "url": "...",
+            "dimensions": "200x200"
+        }
+    }
     ]
 }
 ```
@@ -663,7 +684,9 @@ Content-Type: application/json
                     "model": "...",
                     "product": {
                         "name": "...",
-                        "category": "..."
+                        "category": "...",
+                        "image": ...,
+                        "thumbnails": {}
                     },
                     "shop": ...,
                     "quantity": ...,
@@ -749,7 +772,9 @@ Content-Type: application/json
                     "model": "...",
                     "product": {
                         "name": "...",
-                        "category": "..."
+                        "category": "...",
+                        "image": ...,
+                        "thumbnails": {}
                     },
                     "shop": ...,
                     "quantity": ...,
@@ -1003,7 +1028,9 @@ Content-Type: application/json
                     "model": "...",
                     "product": {
                         "name": "...",
-                        "category": "..."
+                        "category": "...",
+                        "image": ...,
+                        "thumbnails": {}
                     },
                     "shop": ...,
                     "quantity": ...,
