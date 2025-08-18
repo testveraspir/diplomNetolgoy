@@ -5,8 +5,9 @@ from django.conf import settings
 from django.db.models.signals import post_save
 from django.dispatch import receiver, Signal
 from django_rest_passwordreset.signals import reset_password_token_created
-from backend.tasks import send_email, send_email_with_attachment
-from backend.models import ConfirmEmailToken, User, Order
+from backend.tasks import (send_email, send_email_with_attachment,
+                           generate_product_thumbnails, generate_user_thumbnails)
+from backend.models import ConfirmEmailToken, User, Order, Product
 from backend.excel_utils import generate_invoice_excel
 
 new_user_registered = Signal()
@@ -168,3 +169,51 @@ def _handle_new_order(user_id, user):
         excel_data=excel_data,
         filename=f"invoice_{order.id}.xlsx"
     )
+
+
+@receiver(post_save, sender=Product)
+def process_product_image_on_save(sender, instance, created, **kwargs):
+    """Сигнал для обработки изображений товаров после сохранения."""
+
+    if not instance.image:
+        if hasattr(instance, 'clear_products_thumbnails'):
+            instance.clear_products_thumbnails()
+        return
+
+    if not created:
+        try:
+            old = Product.objects.get(id=instance.id)
+            if old.image.name != instance.image.name:
+                if hasattr(old, 'clear_products_thumbnails'):
+                    old.clear_products_thumbnails()
+        except Product.DoesNotExist:
+            pass
+
+    sizes = [(400, 400), (200, 200), (100, 100)]
+    generate_product_thumbnails.delay(instance.id, sizes)
+
+
+@receiver(post_save, sender=User)
+def process_user_avatar_on_save(sender, instance, created, **kwargs):
+    """Сигнал для обработки аватара пользователя после сохранения."""
+
+    if not instance.avatar:
+        if hasattr(instance, 'clear_thumbnails'):
+            instance.clear_thumbnails()
+        return
+
+    if not created:
+        try:
+            old_user = User.objects.get(id=instance.id)
+            if old_user.avatar.name != instance.avatar.name:
+                if hasattr(old_user, 'clear_thumbnails'):
+                    old_user.clear_thumbnails()
+        except User.DoesNotExist:
+            pass
+
+    avatar_sizes = [(200, 200), (100, 100), (50, 50)]
+
+    # Запуск асинхронной задачи
+    generate_user_thumbnails.delay(user_id=instance.id,
+                                   sizes=avatar_sizes)
+    print(f"Thumbnail generation task started for user {instance.id}")

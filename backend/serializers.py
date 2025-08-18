@@ -1,3 +1,4 @@
+from django.core.files.storage import default_storage
 from rest_framework import serializers
 from backend.models import (User, Category, Shop, ProductInfo,
                             Product, ProductParameter, OrderItem,
@@ -17,12 +18,49 @@ class ContactSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     contacts = ContactSerializer(read_only=True, many=True)
+    avatar = serializers.SerializerMethodField()
+    avatar_thumbnails = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = ('id', 'first_name', 'last_name',
-                  'email', 'company', 'position', 'contacts')
+                  'email', 'company', 'position', 'contacts',
+                  'avatar', 'avatar_thumbnails')
         read_only_fields = ('id',)
+
+    def get_avatar(self, obj):
+        if not obj.avatar:
+            return None
+
+        request = self.context.get('request')
+        avatar_data = {
+            'width': obj.avatar.width,
+            'height': obj.avatar.height
+        }
+
+        if request:
+            avatar_data['url'] = request.build_absolute_uri(obj.avatar.url)
+        else:
+            avatar_data['url'] = obj.avatar.url
+
+        return avatar_data
+
+    def get_avatar_thumbnails(self, obj):
+        if not hasattr(obj, 'avatar_thumbnails') or not obj.avatar_thumbnails:
+            return {}
+
+        request = self.context.get('request')
+        result = {}
+
+        for size, path in obj.avatar_thumbnails.items():
+            if default_storage.exists(path):
+                url = default_storage.url(path)
+                result[size] = {
+                    'url': request.build_absolute_uri(url) if request else url,
+                    'dimensions': size
+                }
+
+        return result
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -41,10 +79,53 @@ class ShopSerializer(serializers.ModelSerializer):
 
 class ProductSerializer(serializers.ModelSerializer):
     category = serializers.StringRelatedField()
+    image = serializers.SerializerMethodField()
+    thumbnails = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
-        fields = ('name', 'category',)
+        fields = ('name', 'category', 'image', 'thumbnails')
+
+    def get_image(self, obj):
+        if not obj.image:
+            return None
+
+        request = self.context.get("request")
+        image_data = {
+            'width': obj.image.width,
+            'height': obj.image.height
+        }
+
+        try:
+            image_url = obj.image.url
+            image_data['original'] = request.build_absolute_uri(image_url)\
+                if request else image_url
+        except ValueError:
+            image_data['original'] = None
+
+        return image_data
+
+    def get_thumbnails(self, obj):
+        if not hasattr(obj, 'thumbnails') or not obj.thumbnails:
+            return {}
+
+        request = self.context.get("request")
+        result = {}
+
+        for size, path in obj.thumbnails.items():
+            if not path:
+                continue
+
+            try:
+                if default_storage.exists(path):
+                    storage_url = default_storage.url(path)
+                    result[size] = {
+                        'url': request.build_absolute_uri(storage_url) if request else storage_url,
+                        'dimensions': size
+                    }
+            except (ValueError, NotImplementedError):
+                continue
+        return result
 
 
 class ProductParameterSerializer(serializers.ModelSerializer):

@@ -8,8 +8,9 @@ from yaml import safe_load, YAMLError
 from requests import get
 from requests.exceptions import RequestException
 from django.db import transaction
+from backend.image_utils import generate_and_save_thumbnails
 from backend.models import (Shop, Category, Product, ProductInfo,
-                            Parameter, ProductParameter)
+                            Parameter, ProductParameter, User)
 
 
 @shared_task
@@ -197,3 +198,57 @@ def export_products(product_ids):
     excel_file.seek(0)
 
     return excel_file.getvalue()
+
+
+@shared_task(bind=True, name="generate_product_thumbnails")
+def generate_product_thumbnails(self, product_id, sizes=None):
+    """
+    Асинхронная генерация миниатюр изображения товара.
+
+    :param product_id: Id продукта
+    :param sizes: список размеров (кортежи ширина x высота)
+    :return: Словарь с результатами выполнения
+    """
+
+    if sizes is None:
+        sizes = [(400, 400), (200, 200), (100, 100)]
+
+    try:
+        product = Product.objects.get(id=product_id)
+        thumbnails = generate_and_save_thumbnails(instance=product,
+                                                  image_field_name='image',
+                                                  thumbnails_field_name='thumbnails',
+                                                  sizes=sizes)
+        return {'status': 'success',
+                'generated': list(thumbnails.keys()),
+                'model': 'Product'}
+    except Product.DoesNotExist:
+        return {'status': 'error', 'reason': 'Товар не найден'}
+
+
+@shared_task(bind=True, name="generate_user_thumbnails")
+def generate_user_thumbnails(self, user_id, sizes=None):
+    """
+    Асинхронная генерация миниатюр изображения товара.
+
+    :param user_id: Id пользователя
+    :param sizes: список размеров (кортежи ширина x высота)
+    :return: Словарь с результатами выполнения
+    """
+
+    if sizes is None:
+        sizes = [(200, 200), (100, 100), (50, 50)]
+
+    try:
+        user = User.objects.get(id=user_id)
+        thumbnails = generate_and_save_thumbnails(instance=user,
+                                                  image_field_name='avatar',
+                                                  thumbnails_field_name='avatar_thumbnails',
+                                                  sizes=sizes)
+
+        return {'status': 'success',
+                'generated': list(thumbnails.keys()),
+                'model': 'User'}
+
+    except User.DoesNotExist:
+        return {'status': 'error', 'reason': 'Пользователь не найден'}

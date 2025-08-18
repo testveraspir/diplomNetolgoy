@@ -1,9 +1,12 @@
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.validators import UnicodeUsernameValidator
+from django.core.files.storage import default_storage
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django_rest_passwordreset.tokens import get_token_generator
+from imagekit.models import ProcessedImageField
+from pilkit.processors import ResizeToFit
 
 STATE_CHOICES = (
     ('basket', 'Статус корзины'),
@@ -94,6 +97,21 @@ class User(AbstractUser):
                             choices=USER_TYPE_CHOICES,
                             max_length=5,
                             default='buyer')
+    avatar = ProcessedImageField(upload_to='avatars/',
+                                 blank=True,
+                                 null=True,
+                                 processors=[ResizeToFit(500, 500)],
+                                 format='JPEG',
+                                 verbose_name='Аватар',
+                                 options={'quality': 85})
+    avatar_thumbnails = models.JSONField(default=dict, editable=False)
+
+    def clear_thumbnails(self):
+        if self.avatar_thumbnails:
+            for path in self.avatar_thumbnails.values():
+                default_storage.delete(path)
+            self.avatar_thumbnails = {}
+            self.save(update_fields=['avatar_thumbnails'])
 
     def __str__(self):
         return f'{self.first_name} {self.last_name}'
@@ -155,6 +173,21 @@ class Product(models.Model):
     category = models.ForeignKey(Category, verbose_name='Категория',
                                  related_name='products', blank=True,
                                  on_delete=models.CASCADE)
+    image = ProcessedImageField(upload_to='products/',
+                                blank=True,
+                                null=True,
+                                processors=[ResizeToFit(width=800, height=800)],
+                                format='JPEG',
+                                options={'quality': 85},
+                                verbose_name='Изображение товара')
+    thumbnails = models.JSONField(default=dict, editable=False)
+
+    def clear_products_thumbnails(self):
+        if self.thumbnails:
+            for path in self.thumbnails.values():
+                default_storage.delete(path)
+            self.avatar_thumbnails = {}
+            self.save(update_fields=['thumbnails'])
 
     class Meta:
         verbose_name = 'Продукт'

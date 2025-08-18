@@ -7,10 +7,11 @@ from django.urls import reverse, path
 from django.utils.translation import gettext_lazy as _
 from backend.models import (User, Shop, Category, ProductInfo,
                             ProductParameter, Order, OrderItem,
-                            Contact)
+                            Contact, Product)
 from backend.signals import new_order_signal
 from backend.tasks import export_products
 from backend.views import ImportFromAdmin
+from django.utils.safestring import mark_safe
 
 
 class ContactInline(admin.TabularInline):
@@ -29,14 +30,15 @@ class CustomUserAdmin(UserAdmin):
     model = User
 
     fieldsets = (
-        (None, {'fields': ('email', 'password', 'type', 'is_active')}),
+        (None, {'fields': ('email', 'password', 'avatar', 'type', 'is_active')}),
         ('Персональная информация', {'fields': ('first_name', 'last_name',
                                                 'company', 'position')}),
         ('Даты', {'fields': ('date_joined', )}),
     )
-    list_display = ('email', 'first_name', 'last_name', 'is_staff', 'type')
+    list_display = ('email', 'first_name', 'last_name', 'avatar_preview', 'is_staff', 'type')
     list_editable = ('type',)
     list_filter = ('type',)
+    readonly_fields = ('avatar_preview', )
     inlines = [ContactInline]
 
     change_list_template = 'import_form.html'
@@ -58,6 +60,13 @@ class CustomUserAdmin(UserAdmin):
         extra_context['title'] = ""
         extra_context['shop_users'] = User.objects.filter(type='shop')
         return super().changelist_view(request, extra_context=extra_context)
+
+    def avatar_preview(self, obj):
+        if obj.avatar:
+            return mark_safe(f'<img src="{obj.avatar.url}"'
+                             f' width="50" height="50" style="border-radius: 50%;" />')
+        return "Нет аватара"
+    avatar_preview.short_description = 'Аватар'
 
 
 class OrderItemInline(admin.TabularInline):
@@ -180,11 +189,39 @@ class ProductParameterInline(admin.TabularInline):
 @admin.register(ProductInfo)
 class ProductInfoAdmin(admin.ModelAdmin):
     inlines = [ProductParameterInline]
-    list_display = ('model', 'external_id', 'product',
-                    'shop', 'quantity', 'price', 'price_rrc')
+    list_display = ('get_product_name', 'model', 'product_with_image',
+                    'external_id', 'shop', 'quantity', 'price', 'price_rrc')
     list_filter = ('shop', 'product__category')
     search_fields = ('product__name', 'model')
-    search_help_text = "Поиск по: названию продукта и модели"
+    readonly_fields = ('product_image_preview',)
+
+    fieldsets = (
+        (None, {
+            'fields': ('product', 'model', 'external_id', 'shop',
+                       'quantity', 'price', 'price_rrc', 'product_image_preview')
+        }),
+    )
+
+    def product_with_image(self, obj):
+        image_html = self.product_image_preview(obj)
+        return format_html(f'{image_html}')\
+            if obj.product.image else 'нет изображения'
+
+    product_with_image.short_description = 'Изображение товара'
+
+    def get_product_name(self, obj):
+        return obj.product.name
+
+    get_product_name.short_description = 'Название товара'
+    get_product_name.admin_order_field = 'product__name'
+
+    def product_image_preview(self, obj):
+        if obj.product.image:
+            return mark_safe(f'<img src="{obj.product.image.url}"'
+                             f' width="50" height="50" />')
+        return "Нет фото"
+
+    product_image_preview.short_description = 'Изображение товара'
 
     actions = ['export_selected_products']
 
@@ -199,3 +236,15 @@ class ProductInfoAdmin(admin.ModelAdmin):
                   f" <a href='{reverse('backend:download-csv')}?task_id={task.id}'" \
                   f">Скачать можно здесь</a>"
         self.message_user(request, format_html(message), extra_tags='safe')
+
+
+@admin.register(Product)
+class ProductAdmin(admin.ModelAdmin):
+    list_display = ('name', 'category', 'image_preview')
+
+    def image_preview(self, obj):
+        if obj.image:
+            return mark_safe(f'<img src="{obj.image.url}" width="50" height="50" />')
+        return "Нет фото"
+
+    image_preview.short_description = 'Изображение товара'
