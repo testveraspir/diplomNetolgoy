@@ -6,3 +6,4 @@ from .shops_views import CategoryView, ShopView, ProductInfoView, OrderView
 from .admin_export_views import download_csv_view
 from .admin_import_views import ImportFromAdmin
 from .social_auth_views import yandex_oauth_callback
+from .check_hawk_views import TestErrorView

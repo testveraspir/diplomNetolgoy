@@ -5,7 +5,8 @@ from backend.views import (PartnerUpdate, RegisterAccount, LoginAccount,
                            CategoryView, ShopView, ProductInfoView, BasketView,
                            AccountDetails, ContactView, OrderView, PartnerState,
                            PartnerOrders, ConfirmAccount, ImportFromAdmin,
-                           download_csv_view)
+                           download_csv_view, TestErrorView)
+
 
 app_name = 'backend'
 urlpatterns = [
@@ -28,5 +29,6 @@ urlpatterns = [
     path('download_csv', download_csv_view, name='download-csv'),
     path('import-from-admin', ImportFromAdmin.as_view(), name='import-from-admin'),
     path('import-from-admin/tasks/<str:task_id>', ImportFromAdmin.as_view(), name='task-status-admin'),
+    path('test-error/', TestErrorView.as_view(), name='test-error'),
 
 ]
