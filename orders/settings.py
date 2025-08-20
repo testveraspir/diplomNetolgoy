@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 import os
+import sys
 from pathlib import Path
 from dotenv import load_dotenv
 import sentry_sdk
@@ -33,6 +34,10 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+if 'test' in sys.argv:
+    SILKY_META = False
+    SILKY_ANALYZE_QUERIES = False
+    SILKY_INTERCEPT_FUNC = lambda request: False
 
 # Application definition
 
@@ -55,10 +60,12 @@ INSTALLED_APPS = [
     'baton.autodiscover',
     'imagekit',
     'cacheops',
+    'silk',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'silk.middleware.SilkyMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.locale.LocaleMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -308,4 +315,11 @@ CACHEOPS_REDIS = os.getenv("CACHEOPS_REDIS", "redis://localhost:6379/2")
 CACHEOPS = {
     # Кэшируем все запросы ко всем моделям на 1 час
     '*.*': {'ops': 'all', 'timeout': 60 * 60},
+
+    # Не кешировать вообще
+    'migrations.*': {'ops': (), 'timeout': 0},
 }
+
+SILKY_PYTHON_PROFILER = True
+SILKY_PYTHON_PROFILER_BINARY = True
+SILKY_META = True
