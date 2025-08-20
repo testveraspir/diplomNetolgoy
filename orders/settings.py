@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'rest_framework_social_oauth2',
     'baton.autodiscover',
     'imagekit',
+    'cacheops',
 ]
 
 MIDDLEWARE = [
@@ -300,3 +301,11 @@ sentry_sdk.init(
     debug=False,
     send_default_pii=True,
 )
+
+# Настройки Cacheops
+CACHEOPS_REDIS = os.getenv("CACHEOPS_REDIS", "redis://localhost:6379/2")
+
+CACHEOPS = {
+    # Кэшируем все запросы ко всем моделям на 1 час
+    '*.*': {'ops': 'all', 'timeout': 60 * 60},
+}
