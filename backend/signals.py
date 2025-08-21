@@ -216,4 +216,3 @@ def process_user_avatar_on_save(sender, instance, created, **kwargs):
     # Запуск асинхронной задачи
     generate_user_thumbnails.delay(user_id=instance.id,
                                    sizes=avatar_sizes)
-    print(f"Thumbnail generation task started for user {instance.id}")
