@@ -50,9 +50,6 @@ def generate_and_save_thumbnails(instance, image_field_name, thumbnails_field_na
             except Exception:
                 continue
 
-        print(f"Original image path: {original_image.path}")
-        print(f"Image exists: {default_storage.exists(original_image.path)}")
-
         # Обновление модели
         update_data = {thumbnails_field_name: thumbnails}
         instance.__class__.objects.filter(id=instance.id).update(**update_data)
