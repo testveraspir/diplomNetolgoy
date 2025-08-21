@@ -1,11 +1,11 @@
 from rest_framework.request import Request
 from django.db import IntegrityError
-from django.db.models import Q, Sum, F
+from django.db.models import Q, Sum, F, Prefetch
 from django.http import JsonResponse
 from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from backend.models import Shop, Category, ProductInfo, Order
+from backend.models import Shop, Category, ProductInfo, Order, OrderItem, ProductParameter
 from backend.permissions import IsAuthenticated
 from backend.serializers import (CategorySerializer, ShopSerializer, Contact,
                                  ProductInfoSerializer, OrderSerializer)
@@ -59,21 +59,28 @@ class OrderView(APIView):
     def get(self, request, *args, **kwargs):
         """Получение списка заказов пользователя (исключая корзину)."""
 
-        order = Order.objects.filter(
+        orders = Order.objects.filter(
             user_id=request.user.id
         ).exclude(
             state='basket'
-        ).prefetch_related(
-            'ordered_items__product_info__product__category',
-            'ordered_items__product_info__product_parameters__parameter'
         ).select_related(
             'contact'
+        ).prefetch_related(
+            Prefetch('ordered_items',
+                     queryset=OrderItem.objects.select_related(
+                         'product_info__product__category',
+                         'product_info__shop'
+                     ).prefetch_related(
+                         Prefetch('product_info__product_parameters',
+                                  queryset=ProductParameter.objects.select_related('parameter')
+                                  )
+                     )
+                     )
         ).annotate(
-            total_sum=Sum(F('ordered_items__quantity')
-                          * F('ordered_items__product_info__price'))
+            total_sum=Sum(F('ordered_items__quantity') * F('ordered_items__product_info__price'))
         ).distinct()
 
-        serializer = OrderSerializer(order, many=True)
+        serializer = OrderSerializer(orders, many=True)
         return Response(serializer.data)
 
     def post(self, request, *args, **kwargs):

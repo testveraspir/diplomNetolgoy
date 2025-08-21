@@ -186,7 +186,7 @@ class PartnerOrderItemSerializer(serializers.ModelSerializer):
 
 
 class PartnerOrderSerializer(serializers.ModelSerializer):
-    ordered_items = serializers.SerializerMethodField()
+    ordered_items = PartnerOrderItemSerializer(many=True, read_only=True)
     total_sum = serializers.SerializerMethodField()
     contact = ContactSerializer(read_only=True)
 
@@ -195,11 +195,6 @@ class PartnerOrderSerializer(serializers.ModelSerializer):
         fields = ('id', 'ordered_items', 'state',
                   'dt', 'total_sum', 'contact',)
         read_only_fields = ('id',)
-
-    def get_ordered_items(self, obj):
-        user = self.context['request'].user
-        items = obj.ordered_items.filter(product_info__shop__user_id=user.id)
-        return PartnerOrderItemSerializer(items, many=True).data
 
     def get_total_sum(self, obj):
         return obj.partner_sum

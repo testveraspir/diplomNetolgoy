@@ -1,10 +1,10 @@
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
-from django.db.models import Sum, F, Q
+from django.db.models import Sum, F, Q, Prefetch
 from django.http import JsonResponse
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from backend.models import Shop, Order
+from backend.models import Shop, Order, OrderItem, ProductParameter
 from backend.permissions import IsShopUser, IsAuthenticated
 from backend.serializers import ShopSerializer, PartnerOrderSerializer
 from backend.tasks import do_import
@@ -146,21 +146,31 @@ class PartnerOrders(APIView):
         только заказы, где есть товары этого магазина
         """
 
-        orders = Order.objects.filter(
-            ordered_items__product_info__shop__user_id=request.user.id
-        ).exclude(state='basket').prefetch_related(
-            'ordered_items__product_info__product__category',
-            'ordered_items__product_info__product_parameters__parameter'
-        ).select_related('contact').distinct()
+        user_id = request.user.id
 
-        orders = orders.annotate(
+        order_ids = Order.objects.filter(
+            ordered_items__product_info__shop__user_id=user_id
+        ).exclude(state='basket').distinct().values_list('id', flat=True)
+
+        orders = Order.objects.filter(id__in=order_ids).annotate(
             partner_sum=Sum(
                 F('ordered_items__quantity') * F('ordered_items__product_info__price'),
-                filter=Q(ordered_items__product_info__shop__user_id=request.user.id)
+                filter=Q(ordered_items__product_info__shop__user_id=user_id)
             )
-        )
+        ).prefetch_related(
+            Prefetch('ordered_items',
+                     queryset=OrderItem.objects.filter(
+                         product_info__shop__user_id=user_id
+                     ).select_related(
+                         'product_info__shop',
+                         'product_info__product__category'
+                     ).prefetch_related(
+                         Prefetch('product_info__product_parameters',
+                                  queryset=ProductParameter.objects.select_related('parameter')
+                                  )
+                     )
+                     )
+        ).select_related('contact')
 
-        serializer = PartnerOrderSerializer(orders,
-                                            many=True,
-                                            context={'request': request})
+        serializer = PartnerOrderSerializer(orders, many=True)
         return Response(serializer.data)

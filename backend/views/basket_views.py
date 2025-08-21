@@ -1,5 +1,5 @@
 from django.db import transaction
-from django.db.models import Sum, F
+from django.db.models import Sum, F, Prefetch
 from django.http import JsonResponse
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -17,20 +17,25 @@ class BasketView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, *args, **kwargs):
+    def get(self, request):
         """Получение содержимого корзины."""
-
-        basket = Order.objects.filter(
-            user_id=request.user.id, state='basket'
-        ).prefetch_related(
-            'ordered_items__product_info__product__category',
-            'ordered_items__product_info__product_parameters__parameter'
+        baskets = Order.objects.filter(
+            user=request.user,
+            state='basket'
+        ).select_related('user').prefetch_related(
+            Prefetch('ordered_items',
+                     queryset=OrderItem.objects.select_related(
+                         'product_info__shop',
+                         'product_info__product__category'
+                     ).prefetch_related(
+                         'product_info__product_parameters__parameter'
+                     )
+                     )
         ).annotate(
-            total_sum=Sum(F('ordered_items__quantity') * F(
-                'ordered_items__product_info__price'))
-        ).distinct()
+            total_sum=Sum(F('ordered_items__quantity') * F('ordered_items__product_info__price'))
+        )
 
-        serializer = OrderSerializer(basket, many=True)
+        serializer = OrderSerializer(baskets, many=True)
         return Response(serializer.data)
 
     def post(self, request, *args, **kwargs):
