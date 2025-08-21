@@ -10,11 +10,13 @@ project/
 │   ├── admin.py                 # Настройки админки
 │   ├── apps.py                  # Конфиг приложения
 │   ├── excel_utils.py           # Работа с Excel
+│   ├── image_utils.py           # Работа с изображениями
 │   ├── models.py                # Модели данных
 │   ├── permissions.py           # Права доступа
 │   ├── serializers.py           # Сериализаторы
 │   ├── signals.py               # Сигналы Django
 │   ├── tasks.py                 # Задачи Celery
+│   ├── throttling.py            # Ограничение запросов
 │   ├── urls.py                  # URL-маршруты приложения
 │   └── validators.py            # Валидаторы данных
 │
@@ -26,6 +28,7 @@ project/
 │   ├── PROJECT_STRUCTURE.md     # Описание структуры проекта
 │   └── TASK.md                  # Задание
 │
+├── htmlcov/                     # Отчеты покрытия тестами
 ├── locale/                      # Локализация (переводы)
 │
 ├── orders/
@@ -36,6 +39,7 @@ project/
 │   ├── urls.py                  # Основные URL-маршруты
 │   ├── wsgi.py                  # WSGI-конфигурация
 │
+├── staticfiles/                 # Собранные статические файлы
 ├── tests/                       # Тесты
 │
 ├── .env                         # Переменные окружения
