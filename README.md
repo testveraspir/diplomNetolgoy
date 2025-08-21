@@ -7,4 +7,4 @@
 - [Структура проекта](documents/PROJECT_STRUCTURE.md)
 - [Инструкция по запуску](documents/Commands.md)
 
-![Coverage](https://img.shields.io/badge/Coverage-81.36%25-yellow?logo=python)
+![Coverage](https://img.shields.io/badge/Coverage-82.10%25-yellow?logo=python)
